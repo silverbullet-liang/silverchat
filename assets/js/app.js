@@ -87,10 +87,25 @@
     finish();
   }
 
-  if (!SC.crypto.available) {
+  function isSecureContextOk() {
+    if (typeof window.isSecureContext === 'boolean') { return window.isSecureContext; }
+    var h = location.hostname;
+    return location.protocol === 'https:' || h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+  }
+
+  if (!SC.crypto || !SC.crypto.available) {
     if (bootEl) {
-      bootEl.innerHTML = '<div class="p16 text-center"><div class="empty-title">浏览器版本过低</div>' +
-        '<p class="muted small" style="margin-top:8px">SilverChat 需要 Web Crypto 支持，请升级到最新版 Chrome、Edge、Firefox 或 Safari。</p></div>';
+      var secure = isSecureContextOk();
+      var title = secure ? '浏览器未提供加密接口' : '需要 HTTPS 访问';
+      var desc = secure
+        ? '当前浏览器未启用 Web Crypto。请检查浏览器设置（企业策略、隐私扩展）或更换最新版 Chrome、Edge、Firefox、Safari。'
+        : '当前页面通过 HTTP 打开，浏览器出于安全考虑禁用了 Web Crypto，端到端加密无法工作。请改用 https:// 域名访问；本地调试请使用 http://localhost 或 http://127.0.0.1。';
+      bootEl.innerHTML = '<div class="p16 text-center" style="max-width:440px;margin:0 auto">' +
+        '<div class="empty-title">' + title + '</div>' +
+        '<p class="muted small" style="margin-top:10px;line-height:20px">' + desc + '</p>' +
+        '<p class="tiny muted" style="margin-top:14px">当前地址：' + SC.esc(location.origin) + '</p>' +
+        (secure ? '' : '<p class="tiny muted" style="margin-top:8px">部署提示：在 config/config.php 中设置 <code>site.force_https = true</code>，或为站点启用证书。</p>') +
+        '</div>';
     }
   } else if (!SC.getToken()) {
     if (location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/reset') {
