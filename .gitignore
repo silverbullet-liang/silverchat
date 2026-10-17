@@ -1,0 +1,12 @@
+# 运行时与本地文件
+/config/config.php
+/secrets/
+/storage/
+/media/
+*.log
+*.zip
+.DS_Store
+Thumbs.db
+.php-cs-fixer.cache
+node_modules/
+vendor/

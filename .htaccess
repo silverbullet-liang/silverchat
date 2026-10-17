@@ -1,0 +1,44 @@
+# SilverChat 服务器配置（Apache）
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # API 单入口
+  RewriteRule ^api/(.*)$ api.php [QSA,L]
+
+  # 已存在的静态文件直接返回
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^ - [L]
+
+  # 其余请求交给前端入口（History API 路由）
+  RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# 敏感目录与文件一律拒绝
+RedirectMatch 404 ^/(config|secrets|storage|sql|tools|app)/.*$
+RedirectMatch 404 ^/legal/.*\.md$
+RedirectMatch 404 \.(key|log|sql|lock|bak|ini|md|json|sample\.php)$
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "no-referrer"
+</IfModule>
+
+<FilesMatch "^(install|diag)\.php$">
+  <IfModule mod_authz_core.c>
+    Require all granted
+  </IfModule>
+</FilesMatch>
+
+# 静态资源缓存
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 30 days"
+  ExpiresByType application/javascript "access plus 30 days"
+  ExpiresByType image/svg+xml "access plus 30 days"
+  ExpiresByType image/png "access plus 30 days"
+</IfModule>

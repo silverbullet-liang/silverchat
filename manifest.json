@@ -1,0 +1,17 @@
+{
+  "name": "SilverChat",
+  "short_name": "SilverChat",
+  "description": "端到端加密的即时通讯",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ededed",
+  "theme_color": "#f7f7f7",
+  "icons": [
+    {
+      "src": "/assets/img/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
