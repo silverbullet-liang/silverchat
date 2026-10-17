@@ -93,8 +93,38 @@ function sc_security_headers(bool $html = false): void
     }
 }
 
+/** 必需扩展检测：缺失时给出可行动的提示，而不是白屏 500。 */
+function sc_extension_guard(): void
+{
+    $missing = array();
+    if (!function_exists('mb_internal_encoding')) {
+        $missing[] = 'mbstring';
+    }
+    if (!function_exists('openssl_encrypt')) {
+        $missing[] = 'openssl';
+    }
+    if (!$missing) {
+        return;
+    }
+    $msg = '缺少 PHP 扩展：' . implode('、', $missing) . '。请在主机控制面板启用后重试。';
+    if (SC_CLI) {
+        fwrite(STDERR, $msg . "\n");
+        exit(1);
+    }
+    http_response_code(500);
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>服务器环境不满足</title></head>'
+        . '<body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f7f7f7">'
+        . '<div style="max-width:520px;margin:80px auto;padding:24px;background:#fff;border-radius:12px">'
+        . '<h2 style="font-size:18px;margin:0 0 10px">服务器环境不满足</h2>'
+        . '<p style="color:#666;line-height:1.7;margin:0">' . htmlspecialchars($msg, ENT_QUOTES, 'UTF-8') . '</p>'
+        . '</div></body></html>';
+    exit;
+}
+
 function sc_boot(): void
 {
+    sc_extension_guard();
     $tz = (string) sc_cfg('site.timezone', 'UTC');
     date_default_timezone_set($tz !== '' ? $tz : 'UTC');
     mb_internal_encoding('UTF-8');

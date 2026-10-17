@@ -326,6 +326,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 600; }
 .btn-block { display: flex; width: 100%; }
 .btn-sm { height: 32px; padding: 0 12px; font-size: 14px; border-radius: var(--radius-sm); }
 .btn:disabled, .btn.disabled { opacity: 0.45; pointer-events: none; }
+.btn-muted { opacity: 0.55; }
 .btn-loading .btn-label { visibility: hidden; }
 .btn-loading::after {
   content: "";

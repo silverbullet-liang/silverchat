@@ -123,7 +123,7 @@
             return;
           }
           return SC.store.refreshConversations().then(function () {
-            SC.navigate('/chat/' + data.conv_id);
+            SC.navigate('/talk/' + data.conv_id);
           });
         }).catch(function (e) { SC.toast(e.message || '客服暂不可用', 'error'); });
       });
@@ -423,9 +423,9 @@
       '<div class="muted small" style="margin-top:4px">版本 ' + SC.version + '</div>' +
       '</div>' +
       '<div class="cell-group">' +
-      '<a class="list-item no-avatar" href="/legal/terms"><span class="list-item-body"><span class="list-item-title"><span>用户协议</span></span></span><span class="list-item-arrow">' + SC.icon('arrow', 18) + '</span></a>' +
-      '<a class="list-item no-avatar" href="/legal/privacy"><span class="list-item-body"><span class="list-item-title"><span>隐私政策</span></span></span><span class="list-item-arrow">' + SC.icon('arrow', 18) + '</span></a>' +
-      '<a class="list-item no-avatar" href="/legal/cross-border"><span class="list-item-body"><span class="list-item-title"><span>跨境数据传输协议</span></span></span><span class="list-item-arrow">' + SC.icon('arrow', 18) + '</span></a>' +
+      '<a class="list-item no-avatar" href="/legal.php?doc=terms"><span class="list-item-body"><span class="list-item-title"><span>用户协议</span></span></span><span class="list-item-arrow">' + SC.icon('arrow', 18) + '</span></a>' +
+      '<a class="list-item no-avatar" href="/legal.php?doc=privacy"><span class="list-item-body"><span class="list-item-title"><span>隐私政策</span></span></span><span class="list-item-arrow">' + SC.icon('arrow', 18) + '</span></a>' +
+      '<a class="list-item no-avatar" href="/legal.php?doc=cross-border"><span class="list-item-body"><span class="list-item-title"><span>跨境数据传输协议</span></span></span><span class="list-item-arrow">' + SC.icon('arrow', 18) + '</span></a>' +
       '</div>' +
       '<div class="p16 muted small" style="line-height:22px">' +
       '<p>消息端到端加密，密钥只保存在本机浏览器。服务器只转发密文，无法读取聊天内容。</p>' +
@@ -449,7 +449,7 @@
 
       var list = SC.el('div', { class: 'list' });
       versions.docs.forEach(function (d) {
-        var a = SC.el('a', { class: 'list-item no-avatar', href: '/legal/' + d.type });
+        var a = SC.el('a', { class: 'list-item no-avatar', href: '/legal.php?doc=' + encodeURIComponent(d.type) });
         a.innerHTML = '<span class="list-item-body"><span class="list-item-title"><span>' + SC.esc(d.title) + '</span></span></span>' +
           '<span class="muted small">' + SC.esc(d.version) + '</span><span class="list-item-arrow">' + SC.icon('arrow', 18) + '</span>';
         list.appendChild(a);

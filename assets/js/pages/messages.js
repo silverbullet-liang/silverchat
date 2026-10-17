@@ -100,7 +100,7 @@
           '<span class="list-item-desc conv-preview" data-summary>加密消息</span>' +
           '</span>';
         item.addEventListener('click', function () {
-          SC.navigate('/chat/' + conv.conv_id);
+          SC.navigate('/talk/' + conv.conv_id);
         });
         bindLongPress(item, function () {
           var items = [
@@ -224,7 +224,7 @@
         navEl.querySelector('#chatDesk').addEventListener('click', function () { SC.navigate('/kefu', true); });
       } else {
         navEl.querySelector('#chatMore').addEventListener('click', function () {
-          SC.navigate('/chat/' + convId + '/settings');
+          SC.navigate('/talk/' + convId + '/settings');
         });
       }
     }

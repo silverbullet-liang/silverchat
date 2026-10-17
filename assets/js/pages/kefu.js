@@ -64,7 +64,7 @@
           '<span class="list-item-right"><span>' + SC.fmtDay(conv.last ? conv.last.created_at : conv.updated_at) + '</span>' +
           (conv.unread > 0 ? '<span class="badge-num">' + (conv.unread > 99 ? '99+' : conv.unread) + '</span>' : '') +
           '</span>';
-        item.addEventListener('click', function () { SC.navigate('/chat/' + conv.conv_id); });
+        item.addEventListener('click', function () { SC.navigate('/talk/' + conv.conv_id); });
         list.appendChild(item);
 
         var sumEl = item.querySelector('[data-summary]');

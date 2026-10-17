@@ -258,7 +258,7 @@
           '<span class="list-item-desc">' + g.member_count + ' 人 · ' + SC.esc(g.public_id) + '</span></span>' +
           '<span class="list-item-arrow">' + SC.icon('arrow', 18) + '</span>';
         item.addEventListener('click', function () {
-          if (g.conv_id) { SC.navigate('/chat/' + g.conv_id); }
+          if (g.conv_id) { SC.navigate('/talk/' + g.conv_id); }
           else { SC.navigate('/group/' + g.public_id); }
         });
         list.appendChild(item);
@@ -360,7 +360,7 @@
         btn.addEventListener('click', function () {
           SC.api('group/join', { body: { public_id: g.public_id } }).then(function (data) {
             SC.toast('已加入群聊', 'success');
-            setTimeout(function () { SC.navigate('/chat/' + data.conv_id, true); }, 500);
+            setTimeout(function () { SC.navigate('/talk/' + data.conv_id, true); }, 500);
           }).catch(function (e) { SC.toast(e.message, 'error'); });
         });
       }
@@ -501,7 +501,7 @@
     function openChat(publicId) {
       SC.store.refreshConversations().then(function (convs) {
         var conv = convs.filter(function (c) { return c.type === 1 && c.public_id === publicId; })[0];
-        if (conv) { SC.navigate('/chat/' + conv.conv_id); }
+        if (conv) { SC.navigate('/talk/' + conv.conv_id); }
         else { SC.toast('会话尚未建立，请稍后重试'); }
       });
     }
@@ -552,7 +552,7 @@
         btn.addEventListener('click', function () {
           SC.store.refreshConversations().then(function (convs) {
             var conv = convs.filter(function (c) { return c.type === 2 && c.public_id === g.public_id; })[0];
-            if (conv) { SC.navigate('/chat/' + conv.conv_id); }
+            if (conv) { SC.navigate('/talk/' + conv.conv_id); }
           });
         });
       } else if (g.join_mode !== 1) {
@@ -562,7 +562,7 @@
         btn.addEventListener('click', function () {
           SC.api('group/join', { body: { public_id: g.public_id } }).then(function (data) {
             SC.toast('已加入群聊', 'success');
-            setTimeout(function () { SC.navigate('/chat/' + data.conv_id, true); }, 500);
+            setTimeout(function () { SC.navigate('/talk/' + data.conv_id, true); }, 500);
           }).catch(function (e) { SC.toast(e.message, 'error'); });
         });
       }
@@ -674,7 +674,7 @@
             if (convId) {
               // 缓存群密钥，避免二次解封
               SC.store.setGroupKey(data.group.public_id, gk);
-              SC.navigate('/chat/' + convId, true);
+              SC.navigate('/talk/' + convId, true);
             } else {
               SC.navigate('/contacts/groups', true);
             }

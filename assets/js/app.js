@@ -37,9 +37,9 @@
   });
   SC.route('/reset', SC.pages.reset);
 
-  SC.route('/chat/:id', auth(SC.pages.chat));
-  SC.route('/chat/:id/settings', auth(SC.pages.chatSettings));
-  SC.route('/chat/:id/verify', auth(SC.pages.verify));
+  SC.route('/talk/:id', auth(SC.pages.chat));
+  SC.route('/talk/:id/settings', auth(SC.pages.chatSettings));
+  SC.route('/talk/:id/verify', auth(SC.pages.verify));
   SC.route('/search', auth(SC.pages.search));
 
   SC.route('/contacts', auth(SC.pages.contacts));
@@ -68,9 +68,9 @@
   SC.route('/settings/about', auth(SC.pages.about));
   SC.route('/settings/legal', auth(SC.pages.legalList));
 
-  // 法律文档由服务端直出，整页加载
+  // 法律文档由服务端直出，整页加载（不依赖 URL 重写）
   SC.route('/legal/:doc', function (params) {
-    window.location.href = '/legal/' + encodeURIComponent(params.doc);
+    window.location.href = '/legal.php?doc=' + encodeURIComponent(params.doc);
   });
 
   /* ---------------------------------------------------------------- 启动 */

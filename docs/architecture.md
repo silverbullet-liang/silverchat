@@ -68,7 +68,7 @@
 ### 3.2 页面请求
 
 ```
-浏览器 GET /chat/12
+浏览器 GET /talk/12
   → .htaccess: 非静态文件 → index.php
   → index.php: 判断是否 /legal/{doc}
       ├── 是：服务端渲染 Markdown → 完整 HTML（无 JS 也可阅读）
@@ -275,7 +275,7 @@ app.js      → 路由注册、启动与鉴权守卫
 
 ### 6.2 路由
 
-History API + 服务端回退到 `index.php`。路由表使用 `/chat/:id` 形式注册，`SC.navigate()` 执行 `pushState` 并重渲染。每次切换页面调用 `SC.onRouteCleanup()` 注册的清理函数，停掉上一页的轮询与事件监听。
+History API + 服务端回退到 `index.php`。路由表使用 `/talk/:id` 形式注册，`SC.navigate()` 执行 `pushState` 并重渲染。每次切换页面调用 `SC.onRouteCleanup()` 注册的清理函数，停掉上一页的轮询与事件监听。
 
 ### 6.3 状态与轮询
 

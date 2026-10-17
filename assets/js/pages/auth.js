@@ -27,9 +27,9 @@
     return '<div class="auth-consent">' +
       '<label class="checkbox"><input type="checkbox" id="' + prefix + 'Consent"><span class="box">' +
       '<svg viewBox="0 0 20 20" width="12" height="12" aria-hidden="true"><path d="M4 10.5 8 14.5 16 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-      '</span><span>我已阅读并同意 <a href="/legal/terms" target="_blank" rel="noopener">《用户协议》</a>' +
-      '<a href="/legal/privacy" target="_blank" rel="noopener">《隐私政策》</a>' +
-      '<a href="/legal/cross-border" target="_blank" rel="noopener">《跨境数据传输协议》</a></span></label></div>';
+      '</span><span>我已阅读并同意 <a href="/legal.php?doc=terms" target="_blank" rel="noopener">《用户协议》</a>' +
+      '<a href="/legal.php?doc=privacy" target="_blank" rel="noopener">《隐私政策》</a>' +
+      '<a href="/legal.php?doc=cross-border" target="_blank" rel="noopener">《跨境数据传输协议》</a></span></label></div>';
   }
 
   function setLoading(btn, on) {
@@ -54,7 +54,7 @@
       '<input class="input" id="loginPass" type="password" placeholder="密码" autocomplete="current-password" maxlength="128">' +
       '<button class="input-eye" type="button" id="loginEye" aria-label="显示密码">' + SC.icon('eye', 20) + '</button>' +
       '</div></label>' +
-      '<button class="btn btn-primary btn-block" type="button" id="loginBtn" disabled>登录</button>' +
+      '<button class="btn btn-primary btn-block btn-muted" type="button" id="loginBtn">登录</button>' +
       '</div>' +
       consentHtml('login') +
       '<div class="auth-links"><a href="/register" data-link>没有账号？立即注册</a><a href="/reset" data-link>忘记密码</a></div>' +
@@ -67,7 +67,8 @@
     var consent = SC.qs('#loginConsent');
 
     function refresh() {
-      btn.disabled = !(consent.checked && userEl.value.trim() && passEl.value);
+      var ready = !!(consent.checked && userEl.value.trim() && passEl.value);
+      btn.classList.toggle('btn-muted', !ready);
     }
     [userEl, passEl].forEach(function (el) { el.addEventListener('input', refresh); });
     consent.addEventListener('change', refresh);
@@ -123,7 +124,8 @@
 
     btn.addEventListener('click', submit);
     passEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') { submit(); } });
-    setTimeout(function () { userEl.focus(); }, 80);
+    setTimeout(function () { userEl.focus(); refresh(); }, 80);
+    setTimeout(refresh, 600);
   };
 
   /* ----------------------------------------------------------------- 注册 */
@@ -171,7 +173,7 @@
       '<input class="input" id="regQuestion" maxlength="50" placeholder="例如：我的第一只宠物叫什么"></label>' +
       '<label class="field"><span>安全问题答案</span>' +
       '<input class="input" id="regAnswer" maxlength="50" placeholder="答案不区分大小写"></label>' +
-      '<button class="btn btn-primary btn-block" type="button" id="regBtn" disabled>注册</button>' +
+      '<button class="btn btn-primary btn-block btn-muted" type="button" id="regBtn">注册</button>' +
       '</div>' +
       consentHtml('reg') +
       '<div class="auth-links"><span></span><a href="/login" data-link>已有账号？去登录</a></div>' +
@@ -202,7 +204,7 @@
       }
       var ok = uv.ok && passEl.value.length >= 6 && passEl.value === pass2El.value &&
         nickEl.value.trim().length >= 1 && nickEl.value.trim().length <= 16 && consent.checked;
-      btn.disabled = !ok;
+      btn.classList.toggle('btn-muted', !ok);
     }
     [userEl, passEl, pass2El, nickEl].forEach(function (el) { el.addEventListener('input', refresh); });
     consent.addEventListener('change', refresh);
@@ -214,6 +216,7 @@
       var question = SC.qs('#regQuestion').value.trim();
       var answer = SC.qs('#regAnswer').value.trim();
       if (!usernameValid(username).ok) { showError(usernameValid(username).msg); return; }
+      if (!nickname || nickname.length > 16) { showError('昵称需为 1–16 个字符'); return; }
       if (password.length < 6) { showError('密码至少 6 位'); return; }
       if (password !== pass2El.value) { showError('两次密码不一致'); return; }
       if (!consent.checked) { showError('请先阅读并同意协议'); return; }
@@ -247,7 +250,8 @@
       });
     });
 
-    setTimeout(function () { userEl.focus(); }, 80);
+    setTimeout(function () { userEl.focus(); refresh(); }, 80);
+    setTimeout(refresh, 600);
   };
 
   /* ------------------------------------------------------------- 找回密码 */

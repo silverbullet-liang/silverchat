@@ -59,7 +59,7 @@
         }));
       }
 
-      list.appendChild(linkRow('加密安全码', function () { SC.navigate('/chat/' + convId + '/verify'); }));
+      list.appendChild(linkRow('加密安全码', function () { SC.navigate('/talk/' + convId + '/verify'); }));
       if (conv.type === 1) {
         list.appendChild(linkRow('查找聊天记录', function () { SC.navigate('/search'); }));
       }
@@ -316,7 +316,7 @@
           body.appendChild(SC.el('div', { class: 'list-group-title', text: '会话' }));
           var l1 = SC.el('div', { class: 'list' });
           data.conversations.forEach(function (c) {
-            l1.appendChild(row(c.title, c.type === 2 ? '群聊' : '单聊', function () { SC.navigate('/chat/' + c.conv_id); }));
+            l1.appendChild(row(c.title, c.type === 2 ? '群聊' : '单聊', function () { SC.navigate('/talk/' + c.conv_id); }));
           });
           body.appendChild(l1);
         }
@@ -333,7 +333,7 @@
           var l3 = SC.el('div', { class: 'list' });
           data.groups.forEach(function (g) {
             l3.appendChild(row(g.name, g.public_id, function () {
-              SC.navigate(g.conv_id ? '/chat/' + g.conv_id : '/group/' + g.public_id);
+              SC.navigate(g.conv_id ? '/talk/' + g.conv_id : '/group/' + g.public_id);
             }));
           });
           body.appendChild(l3);
