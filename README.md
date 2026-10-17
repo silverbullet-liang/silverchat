@@ -89,6 +89,8 @@ secrets/master.key（Web 根之外，字段加密主密钥）
 
 环境要求：PHP 7.0+（扩展 `pdo_mysql`、`openssl`、`mbstring`、`gd`、`json`）、MySQL 5.7+ / MariaDB。
 
+> **必须使用 HTTPS**：Web Crypto（`crypto.subtle`）只在安全上下文中可用。通过 `http://` 加域名或 IP 访问时，Chrome、Edge、Firefox、Safari 都会禁用它，页面会提示「需要 HTTPS 访问」。本地调试请用 `http://localhost` 或 `http://127.0.0.1`（这两个地址被视为安全上下文）。
+
 ```bash
 # 1. 上传到站点根目录，确保 config/、secrets/、storage/、media/ 可写
 # 2. 创建数据库（utf8mb4）
