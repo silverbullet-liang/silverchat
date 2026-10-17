@@ -64,7 +64,7 @@ function sc_lazy_cleanup_by_conv(int $convId, int $limit = 15): int
 }
 
 /** 轮询计数：每第 20 次触发一次全局清理。 */
-function sc_poll_tick_cleanup(int $userId): void
+function sc_poll_tick_cleanup(int $userId)
 {
     $n = (int) db_val("SELECT v FROM settings WHERE k = 'poll_tick'");
     $n++;

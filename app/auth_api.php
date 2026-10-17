@@ -49,7 +49,7 @@ function sc_issue_token(int $userId, string $deviceId): string
     return $token;
 }
 
-function sc_record_consents(int $userId, array $versions): void
+function sc_record_consents(int $userId, array $versions)
 {
     $current = sc_legal_versions();
     $ip = sc_client_ip();

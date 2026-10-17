@@ -72,7 +72,7 @@ function sc_base_url(): string
 }
 
 /** 统一的安全响应头。HTML 页面额外下发 CSP。 */
-function sc_security_headers(bool $html = false): void
+function sc_security_headers(bool $html = false)
 {
     if (headers_sent()) {
         return;
@@ -94,7 +94,7 @@ function sc_security_headers(bool $html = false): void
 }
 
 /** 必需扩展检测：缺失时给出可行动的提示，而不是白屏 500。 */
-function sc_extension_guard(): void
+function sc_extension_guard()
 {
     $missing = array();
     if (!function_exists('mb_internal_encoding')) {
@@ -122,7 +122,7 @@ function sc_extension_guard(): void
     exit;
 }
 
-function sc_boot(): void
+function sc_boot()
 {
     sc_extension_guard();
     $tz = (string) sc_cfg('site.timezone', 'UTC');

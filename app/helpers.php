@@ -43,7 +43,7 @@ function sc_app_error_map(): array
     );
 }
 
-function sc_json($data = null, int $httpStatus = 200): void
+function sc_json($data = null, int $httpStatus = 200)
 {
     if (!headers_sent()) {
         header('Content-Type: application/json; charset=utf-8');
@@ -54,7 +54,7 @@ function sc_json($data = null, int $httpStatus = 200): void
     exit;
 }
 
-function sc_fail(int $code, string $msg = '', int $httpStatus = 0): void
+function sc_fail(int $code, string $msg = '', int $httpStatus = 0)
 {
     $map = sc_app_error_map();
     if ($msg === '' && isset($map[$code])) {
@@ -199,7 +199,7 @@ function sc_rate(string $bucket, int $max, int $window, int $code = 1004): int
 }
 
 /** 概率性清理限流表，避免无限增长。 */
-function sc_rate_gc(): void
+function sc_rate_gc()
 {
     if (random_int(1, 50) === 1) {
         db_exec('DELETE FROM rate_limits WHERE created_at < ?', array(time() - 86400));
@@ -207,7 +207,7 @@ function sc_rate_gc(): void
     }
 }
 
-function sc_check_origin(): void
+function sc_check_origin()
 {
     if (SC_CLI) {
         return;
@@ -230,7 +230,7 @@ function sc_check_origin(): void
     }
 }
 
-function sc_log(string $channel, array $ctx = array()): void
+function sc_log(string $channel, array $ctx = array())
 {
     $dir = sc_storage('logs');
     if (!is_dir($dir)) {

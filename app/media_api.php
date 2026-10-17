@@ -136,7 +136,7 @@ function sc_media_can_read(array $media, int $userId): bool
     return false;
 }
 
-function sc_media_not_found(int $status, string $msg): void
+function sc_media_not_found(int $status, string $msg)
 {
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
