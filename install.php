@@ -3,29 +3,12 @@ declare(strict_types=1);
 
 /**
  * 一次性安装程序：写入配置、生成主密钥、建表、播种内置表情。
- * 安装完成后写入 storage/installed.lock；再次访问显示「已安装」，不再伪装 404。
+ * 本页不做任何「是否已安装」检测：随时访问都显示安装表单。
+ * 安装完成后写入 storage/installed.lock，供站点其他位置判断初始化状态。
  */
 
 require_once __DIR__ . '/app/bootstrap.php';
 require_once __DIR__ . '/app/crypto.php';
-
-$lockPath = SC_ROOT . '/storage/installed.lock';
-// 只有「带内容的锁文件」才算安装完成。空文件（主机预置、上传残留）一律忽略，
-// 否则用户永远进不了安装页。config 是否残留不参与判断：安装会覆盖它。
-$locked = is_file($lockPath) && (int) @filesize($lockPath) > 0;
-if ($locked) {
-    header('Content-Type: text/html; charset=utf-8');
-    echo '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
-        . '<meta name="viewport" content="width=device-width, initial-scale=1"><title>已安装</title>'
-        . '<link rel="stylesheet" href="/assets/css/app.css"></head><body class="page-install">'
-        . '<main class="install-card"><h1>SilverChat 已安装</h1>'
-        . '<p class="muted">系统检测到 storage/installed.lock 有内容，说明安装已完成。</p>'
-        . '<p class="small muted" style="line-height:20px">如需重新安装：删除 <code class="mono">storage/installed.lock</code> 后刷新本页。'
-        . 'config/config.php 会被覆盖，数据库已有数据不会删除。</p>'
-        . '<a class="btn btn-primary btn-block" href="/login">进入登录</a>'
-        . '</main></body></html>';
-    exit;
-}
 
 $isCli = PHP_SAPI === 'cli';
 $errors = array();
@@ -214,12 +197,14 @@ if ($done) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>安装 SilverChat</title>
+<meta name="sc-build" content="2026-10-18">
 <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body class="page-install">
 <main class="install-card">
   <h1>SilverChat 安装</h1>
-  <p class="muted">填写数据库信息，安装程序会建表并生成主密钥。安装完成后请删除 install.php。</p>
+  <p class="small muted" style="margin:2px 0 12px">安装程序 1.0.2 · 2026-10-18</p>
+  <p class="muted">填写数据库信息，安装程序会建表并生成主密钥。安装完成后请删除 install.php 与 setup.php。</p>
   <?php foreach ($errors as $e): ?>
     <div class="alert alert-danger"><?php echo htmlspecialchars($e, ENT_QUOTES, 'UTF-8'); ?></div>
   <?php endforeach; ?>
