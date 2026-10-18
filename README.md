@@ -167,7 +167,7 @@ storage/                安装锁与日志（不纳入版本控制）
 
 ## 表情素材版权
 
-`assets/emoji/builtin/` 中的图片来自 bilibili「小黄脸」表情包，版权归 bilibili 及原作者所有，仅用于个人学习与自建站点内置素材。运行时不向 bilibili 发起任何请求。如权利人提出异议，请删除该目录并重新安装（或在后台移除表情包），项目不主张任何权利。拉取脚本见 `tools/fetch_bilibili_emoji.py`。
+`assets/emoji/builtin/` 中的图片来自 bilibili「小黄脸」表情包，版权归 bilibili 及原作者所有，仅用于个人学习与自建站点内置素材。运行时不向 bilibili 发起任何请求。如权利人提出异议，请删除该目录并重新安装（或在后台移除表情包），项目不主张任何权利。
 
 ## 开源协议
 

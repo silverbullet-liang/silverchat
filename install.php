@@ -9,7 +9,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/app/bootstrap.php';
 require_once __DIR__ . '/app/crypto.php';
 
-$locked = is_file(SC_ROOT . '/storage/installed.lock');
+$lockPath = SC_ROOT . '/storage/installed.lock';
+$configPath = SC_ROOT . '/config/config.php';
+// 只有「锁文件有内容」且「配置有内容」才算已安装；空锁文件不阻止安装
+$locked = is_file($lockPath) && (int) @filesize($lockPath) > 0
+    && is_file($configPath) && (int) @filesize($configPath) > 0;
 if ($locked) {
     http_response_code(404);
     header('Content-Type: text/html; charset=utf-8');
