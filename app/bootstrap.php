@@ -35,8 +35,9 @@ function sc_config(): array
             fwrite(STDERR, "config/config.php 不存在，请先运行 install.php\n");
             exit(2);
         }
-        if (strpos($_SERVER['REQUEST_URI'] ?? '', '/install.php') === false) {
-            header('Location: /install.php');
+        if (strpos($_SERVER['REQUEST_URI'] ?? '', '/install.php') === false
+            && strpos($_SERVER['REQUEST_URI'] ?? '', '/setup.php') === false) {
+            header('Location: ' . (is_file(SC_ROOT . '/install.php') ? '/install.php' : '/setup.php'));
             exit;
         }
         return array();

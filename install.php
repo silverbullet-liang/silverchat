@@ -213,7 +213,7 @@ if ($done) {
     <div class="alert alert-danger"><?php echo htmlspecialchars($e, ENT_QUOTES, 'UTF-8'); ?></div>
   <?php endforeach; ?>
   <form method="post" autocomplete="off">
-    <label class="field"><span>数据库主机</span><input class="input" name="db_host" value="<?php echo htmlspecialchars($values['db_host'], ENT_QUOTES, 'UTF-8'); ?>"></label>
+    <label class="field"><span>数据库主机</span><input class="input" name="db_host" value="<?php echo htmlspecialchars($values['db_host'], ENT_QUOTES, 'UTF-8'); ?>"><div class="input-hint">共享主机请填写控制面板给出的数据库地址（如 <code>sql123.infinityfree.com</code>），不要填 localhost。</div></label>
     <label class="field"><span>端口</span><input class="input" name="db_port" value="<?php echo htmlspecialchars($values['db_port'], ENT_QUOTES, 'UTF-8'); ?>"></label>
     <label class="field"><span>数据库名</span><input class="input" name="db_name" value="<?php echo htmlspecialchars($values['db_name'], ENT_QUOTES, 'UTF-8'); ?>"></label>
     <label class="field"><span>数据库用户</span><input class="input" name="db_user" value="<?php echo htmlspecialchars($values['db_user'], ENT_QUOTES, 'UTF-8'); ?>"></label>
