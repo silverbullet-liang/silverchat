@@ -63,7 +63,7 @@ function sc_md_html(string $md): string
         if (strpos($trim, '```') === 0) {
             $flushPara();
             if ($inList) { $out[] = '</ul>'; $inList = false; }
-            if ($inTable) { $out[] = '</table>'; $inTable = false; }
+            if ($inTable) { $out[] = '</tbody></table>'; $inTable = false; }
             $out[] = $inCode ? '</code></pre>' : '<pre><code>';
             $inCode = !$inCode;
             continue;
@@ -75,20 +75,20 @@ function sc_md_html(string $md): string
         if ($trim === '') {
             $flushPara();
             if ($inList) { $out[] = '</ul>'; $inList = false; }
-            if ($inTable) { $out[] = '</table>'; $inTable = false; }
+            if ($inTable) { $out[] = '</tbody></table>'; $inTable = false; }
             continue;
         }
         if (preg_match('/^(#{1,6})\s+(.*)$/u', $trim, $m)) {
             $flushPara();
             if ($inList) { $out[] = '</ul>'; $inList = false; }
-            if ($inTable) { $out[] = '</table>'; $inTable = false; }
+            if ($inTable) { $out[] = '</tbody></table>'; $inTable = false; }
             $level = min(6, strlen($m[1]) + 0);
             $out[] = '<h' . $level . '>' . sc_md_inline($m[2]) . '</h' . $level . '>';
             continue;
         }
         if (preg_match('/^[-*]\s+(.*)$/u', $trim, $m)) {
             $flushPara();
-            if ($inTable) { $out[] = '</table>'; $inTable = false; }
+            if ($inTable) { $out[] = '</tbody></table>'; $inTable = false; }
             if (!$inList) { $out[] = '<ul>'; $inList = true; }
             $out[] = '<li>' . sc_md_inline($m[1]) . '</li>';
             continue;
@@ -118,12 +118,12 @@ function sc_md_html(string $md): string
         }
         $flushPara();
         if ($inList) { $out[] = '</ul>'; $inList = false; }
-        if ($inTable) { $out[] = '</table>'; $inTable = false; }
+        if ($inTable) { $out[] = '</tbody></table>'; $inTable = false; }
         $para[] = $trim;
     }
     $flushPara();
     if ($inList) { $out[] = '</ul>'; }
-    if ($inTable) { $out[] = '</table>'; }
+    if ($inTable) { $out[] = '</tbody></table>'; }
     if ($inCode) { $out[] = '</code></pre>'; }
     return implode("\n", $out);
 }

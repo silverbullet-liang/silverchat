@@ -155,8 +155,7 @@
     }
     return plainPromise.then(function (text) {
       if (last.type === 6) {
-        var map = SC.store.emojiMap();
-        text = map[text] ? '[表情]' : '[表情]';
+        text = '[表情]';
       }
       text = String(text || '').replace(/\s+/g, ' ');
       if (text.length > 30) { text = text.slice(0, 30) + '…'; }
@@ -183,8 +182,8 @@
       }
       return SC.api('group/key?public_id=' + encodeURIComponent(groupPublicId)).then(function (data) {
         if (!data || !data.wrapped) { return null; }
-        // 用自己的私钥解封：本机公钥即对端公钥
-        return SC.crypto.unwrapGroupKey(identity, identity.publicKey, data.wrapped).then(function (bytes) {
+        // 解封者用「自己的私钥 + 封装者公钥」派生；封装者公钥记录在 wrapped.from 中
+        return SC.crypto.unwrapGroupKey(identity, null, data.wrapped).then(function (bytes) {
           return SC.crypto.idbSet('sc_gk_raw_' + groupPublicId, Array.prototype.slice.call(bytes)).then(function () {
             return SC.crypto.importGroupKey(bytes);
           });

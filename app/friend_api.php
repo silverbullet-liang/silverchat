@@ -39,13 +39,14 @@ function api_friend_search()
         'SELECT 1 FROM friend_requests WHERE from_id = ? AND to_id = ? AND status = 0',
         array((int) $target['id'], (int) $u['id'])
     );
+    $isSelf = (int) $u['id'] === (int) $target['id'];
     unset($target['id']);
     sc_json(array(
         'user'         => $target,
         'is_friend'    => $isFriend,
         'has_pending'  => $hasPending,
         'has_incoming' => $incoming,
-        'is_self'      => false,
+        'is_self'      => $isSelf,
     ));
 }
 

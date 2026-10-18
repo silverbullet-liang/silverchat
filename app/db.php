@@ -69,7 +69,7 @@ function db_tx(callable $fn)
         $result = $fn($pdo);
         $pdo->commit();
         return $result;
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }

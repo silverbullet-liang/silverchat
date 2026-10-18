@@ -296,20 +296,26 @@
     return crypto.getRandomValues(new Uint8Array(32));
   };
 
-  /** 用我的私钥 + 成员公钥封装群密钥。 */
+  /** 用我的私钥 + 成员公钥封装群密钥；附带我的公钥，供对方解封时派生同一共享密钥。 */
   SC.crypto.wrapGroupKey = function (identity, memberPublicKey, gk) {
     return SC.crypto.sessionKey(identity, memberPublicKey, null, 'group-key-wrap').then(function (key) {
       var iv = crypto.getRandomValues(new Uint8Array(12));
       return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, gk).then(function (ct) {
-        return JSON.stringify({ n: b64(iv), c: b64(ct) });
+        return JSON.stringify({ n: b64(iv), c: b64(ct), from: identity.publicKey });
       });
     });
   };
 
+  /**
+   * 解封：用「我的私钥 + 封装者公钥」派生，与封装方的「封装者私钥 + 我的公钥」对称。
+   * 新数据以 wrapped.from 为准，peerPublicKey 仅作旧数据回退。
+   */
   SC.crypto.unwrapGroupKey = function (identity, peerPublicKey, wrapped) {
     var obj;
     try { obj = typeof wrapped === 'string' ? JSON.parse(wrapped) : wrapped; } catch (e) { return Promise.reject(new Error('群密钥格式无效')); }
-    return SC.crypto.sessionKey(identity, peerPublicKey, null, 'group-key-wrap').then(function (key) {
+    var from = obj.from || peerPublicKey;
+    if (!from) { return Promise.reject(new Error('群密钥缺少封装者公钥，请让邀请人重新邀请')); }
+    return SC.crypto.sessionKey(identity, from, null, 'group-key-wrap').then(function (key) {
       return crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(obj.n) }, key, unb64(obj.c));
     }).then(function (buf) { return new Uint8Array(buf); });
   };

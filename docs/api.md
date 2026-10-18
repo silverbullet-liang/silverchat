@@ -5,6 +5,7 @@
 - 基址：`/api`
 - 请求体：JSON（`Content-Type: application/json`），上传接口为 `multipart/form-data`
 - 认证：`Authorization: Bearer <token>`（64 位十六进制）
+- 兼容：部分 CGI/FastCGI 主机会剥离 `Authorization`，客户端同时发送 `X-Auth-Token: <token>`，服务端任取其一。
 - 统一响应：
 
 ```json
@@ -135,7 +136,7 @@
 
 - `type`：1 文本、2 图片、3 语音、4 视频、5 文件、6 表情、7 位置（99 为系统消息，仅服务端写入）。
 - `content` 为客户端加密后的 JSON 字符串，服务器不解析；媒体消息在 `extra.media_id` 关联媒体台账。
-- `client_msg_id` 6–64 位字母数字下划线连字符，用于幂等。
+- `client_msg_id` 6–64 位字母数字下划线连字符，用于幂等；幂等范围是「同一发送者 + 同一会话」。
 
 **会话列表项**
 
@@ -151,7 +152,7 @@
 }
 ```
 
-群会话会返回 `member_avatars`（前 9 位成员的头像信息），用于九宫格群头像。
+群会话会返回 `member_avatars`（前 9 位成员的头像信息），用于九宫格群头像；同时返回 `join_mode`（1 可搜索加入 / 2 仅邀请）与 `my_role`（2 群主 / 1 管理员 / 0 成员），前端据此控制群设置入口。
 
 ## 群聊
 
@@ -165,7 +166,7 @@
 | POST | `/group/kick` | `{public_id, user_public_id}` 仅群主 |
 | POST | `/group/quit` | `{public_id}` |
 | POST | `/group/update` | 名称/公告/加入方式/我的群昵称 |
-| GET | `/group/members?public_id=` | 成员列表 |
+| GET | `/group/members?public_id=` | 成员列表（仅群成员；非成员只返回 `member_count`） |
 | GET | `/group/key?public_id=` | 取自己那份群密钥封装 |
 | POST | `/group/key` | 上传某成员的群密钥封装 |
 
@@ -182,7 +183,7 @@
 }
 ```
 
-`group_key_wraps` 由客户端生成：随机 32 字节群密钥，逐个成员用 ECDH 派生的包装密钥加密。服务器只存密文。
+`group_key_wraps` 由客户端生成：随机 32 字节群密钥，逐个成员用 ECDH 派生的包装密钥加密。封装内容为 `{n, c, from}`，`from` 是封装者公钥；接收方用「自己的私钥 + from」派生同一密钥解封。服务器只存密文。
 
 ## 媒体与表情
 
@@ -233,7 +234,7 @@
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | POST | `/moment/post` | 发布 |
-| GET | `/moment/feed?offset=&limit=20` | 好友动态 |
+| GET | `/moment/feed?before_id=&limit=20` | 好友动态（游标分页：`before_id` 传上一页最后一条 id；仍兼容 `offset`） |
 | GET | `/moment/detail?id=` | 详情（含全部评论） |
 | POST | `/moment/like` | `{id, on: 0|1}` |
 | POST | `/moment/comment` | `{id, content, reply_to}` |

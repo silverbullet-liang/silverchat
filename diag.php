@@ -50,8 +50,10 @@ if (is_file($keyPath)) {
     }
 }
 sc_diag_add($items, '主密钥', $keyOk, $keyDetail);
-sc_diag_add($items, 'storage/installed.lock', is_file($root . '/storage/installed.lock'),
-    is_file($root . '/storage/installed.lock') ? '存在' : '缺失，安装未完成');
+$lockPath = $root . '/storage/installed.lock';
+$lockOk = is_file($lockPath) && (int) @filesize($lockPath) > 0;
+sc_diag_add($items, 'storage/installed.lock', $lockOk,
+    !is_file($lockPath) ? '缺失，安装未完成' : ($lockOk ? '存在' : '空文件，安装未完成'));
 
 foreach (array('config', 'secrets', 'storage', 'media') as $dir) {
     $abs = $root . '/' . $dir;
@@ -109,7 +111,7 @@ foreach ($items as $it) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>环境自检 · SilverChat</title>
-<link rel="stylesheet" href="/assets/css/app.css">
+<link rel="stylesheet" href="/assets/css/app.css?v=<?php echo defined('SC_VERSION') ? SC_VERSION : '1'; ?>">
 </head>
 <body class="page-doc">
 <main class="doc-body">

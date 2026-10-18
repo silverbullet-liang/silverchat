@@ -49,17 +49,17 @@ if ($legalDoc !== null) {
   </div>
 </div>
 <noscript><div class="noscript">请启用 JavaScript 后使用 <?php echo sc_e($siteName); ?>。</div></noscript>
-<script src="/assets/js/core.js"></script>
-<script src="/assets/js/crypto.js"></script>
-<script src="/assets/js/ui.js"></script>
-<script src="/assets/js/store.js"></script>
-<script src="/assets/js/pages/auth.js"></script>
-<script src="/assets/js/pages/messages.js"></script>
-<script src="/assets/js/pages/talk-settings.js"></script>
-<script src="/assets/js/pages/contacts.js"></script>
-<script src="/assets/js/pages/discover.js"></script>
-<script src="/assets/js/pages/me.js"></script>
-<script src="/assets/js/pages/kefu.js"></script>
+<script src="/assets/js/core.js?v=<?php echo SC_VERSION; ?>"></script>
+<script src="/assets/js/crypto.js?v=<?php echo SC_VERSION; ?>"></script>
+<script src="/assets/js/ui.js?v=<?php echo SC_VERSION; ?>"></script>
+<script src="/assets/js/store.js?v=<?php echo SC_VERSION; ?>"></script>
+<script src="/assets/js/pages/auth.js?v=<?php echo SC_VERSION; ?>"></script>
+<script src="/assets/js/pages/messages.js?v=<?php echo SC_VERSION; ?>"></script>
+<script src="/assets/js/pages/talk-settings.js?v=<?php echo SC_VERSION; ?>"></script>
+<script src="/assets/js/pages/contacts.js?v=<?php echo SC_VERSION; ?>"></script>
+<script src="/assets/js/pages/discover.js?v=<?php echo SC_VERSION; ?>"></script>
+<script src="/assets/js/pages/me.js?v=<?php echo SC_VERSION; ?>"></script>
+<script src="/assets/js/pages/kefu.js?v=<?php echo SC_VERSION; ?>"></script>
 <script src="/assets/js/app.js?v=<?php echo SC_VERSION; ?>"></script>
 </body>
 </html>

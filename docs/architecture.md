@@ -223,12 +223,14 @@ token = bin2hex(random_bytes(32))        // 256 位熵，仅返回给浏览器
 ```
 1. 建群者生成随机 32 字节群密钥 GK
 2. 对每个成员：ECDH(建群者私钥, 成员公钥) → HKDF(info="group-key-wrap") → 包装密钥
-   用包装密钥 AES-GCM 加密 GK，得到 wrapped（每人一份）
+   用包装密钥 AES-GCM 加密 GK，得到 wrapped（每人一份，内含封装者公钥 from）
 3. 全部 wrapped 随建群请求提交，存 group_keys(group_id, user_id, wrapped)
-4. 成员登录后 GET /api/group/key 取自己那份，用自己私钥解封 → GK（存 IndexedDB）
+4. 成员登录后 GET /api/group/key 取自己那份，用「自己的私钥 + wrapped.from」派生同一包装密钥解封 → GK（存 IndexedDB）
 5. 群消息：AES-GCM(GK, nonce, 明文, AAD="conv:{convId}")
 6. 新成员加入：邀请者取本机 GK，对新成员公钥封装后 POST /api/group/key
 ```
+
+解封依赖 ECDH 的对称性：`ECDH(封装者私钥, 成员公钥) = ECDH(成员私钥, 封装者公钥)`，所以 `from` 必须随封装一起存。缺少 `from` 的旧封装无法被非封装者解开，需要邀请人重新封装。
 
 服务器只存封装密文，无法解封，因此群消息保持端到端加密。代价：新成员的群密钥依赖邀请者在线分发；若缺失，界面提示“群密钥尚未就绪”。
 
@@ -335,6 +337,8 @@ SC.poll: 4 秒（可见）/ 15 秒（隐藏）/ 失败指数退避 4→8→16→
 ### 8.3 注销
 
 单事务内：清空用户名/昵称/签名/安全问题/公钥、密码置随机值、删除 Token 与设备、删除好友与申请、消息发送者置 0、动态下架、退出群成员、删除媒体文件与头像，最后写注销申请记录（保留 3 年）。
+
+用户名盲索引 `username_bidx` 有意保留，避免注销后账号被他人抢注冒用；确需重新使用该用户名，需由运维在数据库中手工清除该行的 `username_bidx`。
 
 ## 九、关键取舍
 

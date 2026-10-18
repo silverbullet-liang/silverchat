@@ -102,6 +102,11 @@ function sc_conv_payload(array $uc, int $myId): array
             $conv['public_id'] = (string) $g['public_id'];
             $conv['member_count'] = (int) db_val('SELECT COUNT(*) FROM group_members WHERE group_id = ?', array($groupId));
             $conv['group_id'] = $groupId;
+            $conv['join_mode'] = (int) $g['join_mode'];
+            $conv['my_role'] = (int) db_val(
+                'SELECT role FROM group_members WHERE group_id = ? AND user_id = ?',
+                array($groupId, $myId)
+            );
             // 九宫格群头像：按角色与加入时间取前 9 位成员
             $memberRows = db_all(
                 'SELECT u.public_id, u.avatar FROM group_members gm
@@ -267,7 +272,7 @@ function api_message_send()
             sc_fail(1204, '你已拉黑对方，无法发送消息');
         }
         if (sc_is_blocked((int) $peer['id'], (int) $u['id'])) {
-            sc_fail(1204, '消息已发出，但对方拒收');
+            sc_fail(1204, '对方已拒收你的消息');
         }
     }
     $extraJson = null;
@@ -280,8 +285,8 @@ function api_message_send()
 
     // 幂等：同一 client_msg_id 直接返回已有消息
     $existing = db_one(
-        'SELECT id, created_at FROM messages WHERE sender_id = ? AND client_msg_id = ? LIMIT 1',
-        array((int) $u['id'], $clientMsgId)
+        'SELECT id, created_at FROM messages WHERE sender_id = ? AND client_msg_id = ? AND conv_id = ? LIMIT 1',
+        array((int) $u['id'], $clientMsgId, $convId)
     );
     if ($existing) {
         sc_json(array('msg_id' => (int) $existing['id'], 'created_at' => (int) $existing['created_at'], 'duplicate' => true));
@@ -305,16 +310,11 @@ function api_message_send()
             }
         }
         db_exec('UPDATE conversations SET last_msg_id = ?, last_msg_at = ? WHERE id = ?', array($id, time(), $convId));
-        $members = db_all('SELECT user_id FROM user_conversations WHERE conv_id = ?', array($convId));
-        foreach ($members as $m) {
-            if ((int) $m['user_id'] === (int) $u['id']) {
-                db_exec('UPDATE user_conversations SET updated_at = ?, is_deleted = 0 WHERE user_id = ? AND conv_id = ?',
-                    array(time(), (int) $m['user_id'], $convId));
-            } else {
-                db_exec('UPDATE user_conversations SET unread = unread + 1, updated_at = ?, is_deleted = 0 WHERE user_id = ? AND conv_id = ?',
-                    array(time(), (int) $m['user_id'], $convId));
-            }
-        }
+        $now = time();
+        db_exec('UPDATE user_conversations SET updated_at = ?, is_deleted = 0 WHERE user_id = ? AND conv_id = ?',
+            array($now, (int) $u['id'], $convId));
+        db_exec('UPDATE user_conversations SET unread = unread + 1, updated_at = ?, is_deleted = 0 WHERE conv_id = ? AND user_id <> ?',
+            array($now, $convId, (int) $u['id']));
         return $id;
     });
 
@@ -390,7 +390,7 @@ function api_message_history()
             'created_at' => (int) $r['created_at'],
             'sender_id' => $sid,
             'sender_public_id' => isset($map[$sid]) ? $map[$sid]['public_id'] : '',
-            'sender_name' => isset($map[$sid]) ? $map[$sid]['nickname'] : ($sid === 0 ? '' : ''),
+            'sender_name' => isset($map[$sid]) ? $map[$sid]['nickname'] : '',
         );
     }
     sc_json(array(

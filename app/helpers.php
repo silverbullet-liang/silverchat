@@ -187,15 +187,18 @@ function sc_user_agent(): string
 function sc_rate(string $bucket, int $max, int $window, int $code = 1004): int
 {
     $since = time() - $window;
-    $count = (int) db_val(
-        'SELECT COUNT(*) FROM rate_limits WHERE bucket = ? AND created_at > ?',
-        array(mb_substr($bucket, 0, 96, 'UTF-8'), $since)
+    $key = mb_substr($bucket, 0, 96, 'UTF-8');
+    // 单条语句完成「判断 + 写入」，避免并发下先查后插导致超限
+    $n = db_exec(
+        'INSERT INTO rate_limits (bucket, created_at)
+         SELECT ?, ? FROM DUAL
+         WHERE (SELECT COUNT(*) FROM rate_limits WHERE bucket = ? AND created_at > ?) < ?',
+        array($key, time(), $key, $since, $max)
     );
-    if ($count >= $max) {
+    if ($n === 0) {
         sc_fail($code);
     }
-    db_exec('INSERT INTO rate_limits (bucket, created_at) VALUES (?, ?)', array(mb_substr($bucket, 0, 96, 'UTF-8'), time()));
-    return $count + 1;
+    return 1;
 }
 
 /** 概率性清理限流表，避免无限增长。 */
@@ -237,7 +240,12 @@ function sc_log(string $channel, array $ctx = array())
         @mkdir($dir, 0755, true);
     }
     $line = date('Y-m-d H:i:s') . ' ' . $channel . ' ' . json_encode($ctx, JSON_UNESCAPED_UNICODE) . "\n";
-    @file_put_contents($dir . '/app.log', $line, FILE_APPEND | LOCK_EX);
+    $path = $dir . '/app.log';
+    // 单文件超过 2MB 轮转一次，避免长期运行撑满空间
+    if (is_file($path) && (int) @filesize($path) > 2097152) {
+        @rename($path, $path . '.1');
+    }
+    @file_put_contents($path, $line, FILE_APPEND | LOCK_EX);
 }
 
 /** 读取 Bearer 令牌：兼容 Authorization 被主机（CGI/FastCGI）剥离的情况。 */

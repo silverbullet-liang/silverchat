@@ -72,14 +72,18 @@ function sc_moment_payload(array $post, int $viewerId, bool $withAllComments = f
     }
 
     $limit = $withAllComments ? 200 : 3;
+    // 先取最新 N 条，再按时间正序展示
     $comments = db_all(
-        'SELECT mc.id, mc.user_id, mc.content_enc, mc.reply_to, mc.created_at,
-                u.public_id, u.nickname_enc, ru.public_id AS reply_public_id, ru.nickname_enc AS reply_nickname_enc
-         FROM moment_comments mc
-         JOIN users u ON u.id = mc.user_id
-         LEFT JOIN moment_comments rc ON rc.id = mc.reply_to
-         LEFT JOIN users ru ON ru.id = rc.user_id
-         WHERE mc.post_id = ? AND mc.status = 1 ORDER BY mc.created_at ASC LIMIT ' . $limit,
+        'SELECT * FROM (
+            SELECT mc.id, mc.user_id, mc.content_enc, mc.reply_to, mc.created_at,
+                   u.public_id, u.nickname_enc, ru.public_id AS reply_public_id, ru.nickname_enc AS reply_nickname_enc
+            FROM moment_comments mc
+            JOIN users u ON u.id = mc.user_id
+            LEFT JOIN moment_comments rc ON rc.id = mc.reply_to
+            LEFT JOIN users ru ON ru.id = rc.user_id
+            WHERE mc.post_id = ? AND mc.status = 1
+            ORDER BY mc.created_at DESC LIMIT ' . $limit . '
+         ) t ORDER BY t.created_at ASC',
         array($pid)
     );
     $commentOut = array();
@@ -206,18 +210,26 @@ function api_moment_post()
 function api_moment_feed()
 {
     $u = sc_require_auth();
-    $offset = max(0, sc_int($_GET['offset'] ?? 0, 0));
+    $beforeId = max(0, sc_int($_GET['before_id'] ?? 0, 0));
+    $offset = max(0, sc_int($_GET['offset'] ?? 0, 0)); // 兼容旧参数
     $limit = max(1, min(30, sc_int($_GET['limit'] ?? 20, 20)));
     $me = (int) $u['id'];
 
+    $params = array($me, $me, $me, $me);
+    $cursorCond = '';
+    if ($beforeId > 0) {
+        $cursorCond = ' AND p.id < ?';
+        $params[] = $beforeId;
+    }
     $rows = db_all(
         'SELECT p.* FROM moment_posts p
          WHERE (p.author_id = ? OR p.author_id IN (SELECT friend_id FROM friends WHERE user_id = ? AND status = 1))
            AND p.status = 1
            AND (p.author_id = ? OR p.visibility IN (1,2)
-                OR (p.visibility = 4 AND EXISTS (SELECT 1 FROM moment_visibility mv WHERE mv.post_id = p.id AND mv.user_id = ?)))
-         ORDER BY p.created_at DESC, p.id DESC LIMIT ' . $limit . ' OFFSET ' . $offset,
-        array($me, $me, $me, $me)
+                OR (p.visibility = 4 AND EXISTS (SELECT 1 FROM moment_visibility mv WHERE mv.post_id = p.id AND mv.user_id = ?)))'
+        . $cursorCond .
+        ' ORDER BY p.id DESC LIMIT ' . $limit . ($beforeId > 0 ? '' : ' OFFSET ' . $offset),
+        $params
     );
     $out = array();
     foreach ($rows as $r) {
@@ -314,5 +326,6 @@ function api_moment_delete()
         sc_fail(1003);
     }
     db_exec('UPDATE moment_posts SET status = 0 WHERE id = ?', array($id));
+    db_exec('DELETE FROM moment_media WHERE post_id = ?', array($id));
     sc_json(array('ok' => true));
 }

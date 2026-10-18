@@ -180,7 +180,7 @@ if ($done) {
     header('Content-Type: text/html; charset=utf-8');
     echo '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
         . '<meta name="viewport" content="width=device-width, initial-scale=1"><title>安装完成</title>'
-        . '<link rel="stylesheet" href="/assets/css/app.css"></head><body class="page-install">'
+        . '<link rel="stylesheet" href="/assets/css/app.css?v=' . SC_VERSION . '"></head><body class="page-install">'
         . '<main class="install-card"><h1>安装完成</h1>'
         . '<p class="muted">请立即保存客服账号信息。该密码只显示这一次，之后可在服务器上通过命令行修改。</p>'
         . '<div class="alert alert-info"><div>客服账号：<b>' . $kefuName . '</b><br>客服密码：<b class="mono">' . $kefuShow . '</b></div></div>'
@@ -198,12 +198,12 @@ if ($done) {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>安装 SilverChat</title>
 <meta name="sc-build" content="2026-10-18">
-<link rel="stylesheet" href="/assets/css/app.css">
+<link rel="stylesheet" href="/assets/css/app.css?v=<?php echo SC_VERSION; ?>">
 </head>
 <body class="page-install">
 <main class="install-card">
   <h1>SilverChat 安装</h1>
-  <p class="small muted" style="margin:2px 0 12px">安装程序 1.0.2 · 2026-10-18</p>
+  <p class="small muted" style="margin:2px 0 12px">安装程序 1.0.4 · 2026-10-18</p>
   <p class="muted">填写数据库信息，安装程序会建表并生成主密钥。安装完成后请删除 install.php 与 setup.php。</p>
   <?php foreach ($errors as $e): ?>
     <div class="alert alert-danger"><?php echo htmlspecialchars($e, ENT_QUOTES, 'UTF-8'); ?></div>

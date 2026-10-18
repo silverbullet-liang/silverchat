@@ -140,23 +140,31 @@ function api_group_join()
     if ((int) $g['join_mode'] !== 1) {
         sc_fail(1404);
     }
-    $count = (int) db_val('SELECT COUNT(*) FROM group_members WHERE group_id = ?', array($gid));
-    if ($count >= 50) {
-        sc_fail(1402);
-    }
 
-    db_tx(function () use ($gid, $u, $count) {
-        db_exec('INSERT IGNORE INTO group_members (group_id, user_id, role, joined_at) VALUES (?,?,0,?)',
-            array($gid, (int) $u['id'], time()));
-        $convId = (int) db_val('SELECT id FROM conversations WHERE conv_key = ?', array('g' . $gid));
-        if ($convId > 0) {
-            db_exec('INSERT IGNORE INTO user_conversations (user_id, conv_id, updated_at) VALUES (?,?,?)',
-                array((int) $u['id'], $convId, time()));
-            if ($count >= 1) {
-                sc_system_message($convId, 0, $u['nickname'] . '加入了群聊');
+    try {
+        db_tx(function () use ($gid, $u) {
+            // 事务内加锁计数，避免并发加入突破上限
+            $count = (int) db_val('SELECT COUNT(*) FROM group_members WHERE group_id = ? FOR UPDATE', array($gid));
+            if ($count >= 50) {
+                throw new RuntimeException('group_full');
             }
-        }
-    });
+            $n = db_exec('INSERT IGNORE INTO group_members (group_id, user_id, role, joined_at) VALUES (?,?,0,?)',
+                array($gid, (int) $u['id'], time()));
+            if ($n === 0) {
+                throw new RuntimeException('already_member');
+            }
+            $convId = (int) db_val('SELECT id FROM conversations WHERE conv_key = ?', array('g' . $gid));
+            if ($convId > 0) {
+                db_exec('INSERT IGNORE INTO user_conversations (user_id, conv_id, updated_at) VALUES (?,?,?)',
+                    array((int) $u['id'], $convId, time()));
+                if ($count >= 1) {
+                    sc_system_message($convId, 0, $u['nickname'] . '加入了群聊');
+                }
+            }
+        });
+    } catch (RuntimeException $e) {
+        sc_fail($e->getMessage() === 'group_full' ? 1402 : 1405);
+    }
 
     $convId = (int) db_val('SELECT id FROM conversations WHERE conv_key = ?', array('g' . $gid));
     sc_json(array('ok' => true, 'conv_id' => $convId, 'group' => sc_group_view($g, (int) $u['id'])));
@@ -350,6 +358,18 @@ function api_group_members()
         sc_fail(1401);
     }
     $gid = (int) $g['id'];
+    $isMember = (bool) db_val(
+        'SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?',
+        array($gid, (int) $u['id'])
+    );
+    if (!$isMember) {
+        // 非成员只返回人数，成员名单仅群内可见
+        sc_json(array(
+            'members' => array(),
+            'is_member' => false,
+            'member_count' => (int) db_val('SELECT COUNT(*) FROM group_members WHERE group_id = ?', array($gid)),
+        ));
+    }
     $rows = db_all(
         'SELECT gm.role, gm.group_nickname_enc, gm.joined_at, u.public_id, u.nickname_enc, u.avatar
          FROM group_members gm JOIN users u ON u.id = gm.user_id
@@ -367,9 +387,7 @@ function api_group_members()
             'joined_at'   => (int) $r['joined_at'],
         );
     }
-    sc_json(array('members' => $out, 'is_member' => (bool) db_val(
-        'SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?', array($gid, (int) $u['id'])
-    )));
+    sc_json(array('members' => $out, 'is_member' => true));
 }
 
 /** GET /api/group/key?public_id=gp_xxx —— 取自己那份被封装的群密钥 */

@@ -786,7 +786,7 @@
     }
 
     /* ------------------------------------------------------------ 录音 */
-    var recorder = null, recordChunks = [], recordTimer = 0, recordStart = 0;
+    var recorder = null, recordChunks = [], recordStart = 0;
 
     function toggleRecord() {
       if (recorder && recorder.state === 'recording') {
@@ -850,7 +850,10 @@
       });
       if (changed) { renderAll(); }
     });
-    SC.onRouteCleanup(function () { off(); offRead(); });
+    SC.onRouteCleanup(function () {
+      off(); offRead();
+      Object.keys(mediaUrlCache).forEach(function (k) { URL.revokeObjectURL(mediaUrlCache[k]); });
+    });
 
     /* -------------------------------------------------------- 初始化 */
     function boot() {

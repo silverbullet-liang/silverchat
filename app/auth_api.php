@@ -515,26 +515,35 @@ function api_user_avatar()
     if (!$info || !in_array($info[2], array(IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF, IMAGETYPE_WEBP), true)) {
         sc_fail(1502);
     }
-    $src = @imagecreatefromstring(file_get_contents($f['tmp_name']));
-    if (!$src) {
-        sc_fail(1502);
+    $raw = file_get_contents($f['tmp_name']);
+    if ($raw === false || $raw === '') {
+        sc_fail(1503);
     }
-    $size = 200;
-    $dst = imagecreatetruecolor($size, $size);
-    // 白底，避免透明 PNG 变黑
-    $white = imagecolorallocate($dst, 255, 255, 255);
-    imagefilledrectangle($dst, 0, 0, $size, $size, $white);
-    $w = imagesx($src);
-    $h = imagesy($src);
-    $scale = min($size / $w, $size / $h);
-    $nw = (int) round($w * $scale);
-    $nh = (int) round($h * $scale);
-    imagecopyresampled($dst, $src, (int) (($size - $nw) / 2), (int) (($size - $nh) / 2), 0, 0, $nw, $nh, $w, $h);
-    ob_start();
-    imagejpeg($dst, null, 88);
-    $jpeg = ob_get_clean();
-    imagedestroy($src);
-    imagedestroy($dst);
+    if (function_exists('imagecreatefromstring')) {
+        $src = @imagecreatefromstring($raw);
+        if (!$src) {
+            sc_fail(1502);
+        }
+        $size = 200;
+        $dst = imagecreatetruecolor($size, $size);
+        // 白底，避免透明 PNG 变黑
+        $white = imagecolorallocate($dst, 255, 255, 255);
+        imagefilledrectangle($dst, 0, 0, $size, $size, $white);
+        $w = imagesx($src);
+        $h = imagesy($src);
+        $scale = min($size / $w, $size / $h);
+        $nw = (int) round($w * $scale);
+        $nh = (int) round($h * $scale);
+        imagecopyresampled($dst, $src, (int) (($size - $nw) / 2), (int) (($size - $nh) / 2), 0, 0, $nw, $nh, $w, $h);
+        ob_start();
+        imagejpeg($dst, null, 88);
+        $jpeg = ob_get_clean();
+        imagedestroy($src);
+        imagedestroy($dst);
+    } else {
+        // 未启用 GD：保留原图，前端按圆形裁切
+        $jpeg = $raw;
+    }
 
     sc_ensure_dir(SC_ROOT . '/media/avatar');
     $path = 'media/avatar/' . (int) $u['id'] . '.enc';
@@ -550,11 +559,7 @@ function api_user_avatar()
 function api_avatar_output(string $key)
 {
     sc_require_auth();
-    if (preg_match('/^\d+$/', $key)) {
-        $userId = (int) $key;
-    } else {
-        $userId = (int) db_val('SELECT id FROM users WHERE public_id = ? LIMIT 1', array($key));
-    }
+    $userId = (int) db_val('SELECT id FROM users WHERE public_id = ? AND deleted_at IS NULL LIMIT 1', array($key));
     $avatar = $userId > 0 ? db_val('SELECT avatar FROM users WHERE id = ? AND deleted_at IS NULL LIMIT 1', array($userId)) : '';
     $abs = $avatar ? SC_ROOT . '/' . $avatar : '';
     if (!$abs || !is_file($abs)) {

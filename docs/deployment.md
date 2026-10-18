@@ -5,7 +5,7 @@
 | 项 | 要求 |
 |---|---|
 | PHP | 7.0 及以上（代码按 7.0 语法编写，8.x 亦可运行） |
-| PHP 扩展 | `pdo_mysql`、`openssl`、`mbstring`、`gd`、`json` |
+| PHP 扩展 | 必需：`pdo_mysql`、`openssl`、`mbstring`、`json`；可选：`gd`（头像裁剪，未启用时保存原图） |
 | 数据库 | MySQL 5.7+ / 8.0 / MariaDB 10.2+，字符集 `utf8mb4` |
 | Web 服务器 | Apache 2.4（支持 `.htaccess`）或 Nginx |
 | 磁盘 | 建议 ≥ 1 GB（聊天媒体 7 天滚动） |
@@ -45,7 +45,7 @@ chown -R www-data:www-data config secrets storage media   # 按实际运行用�
 3. 访问 `https://你的域名/install.php`；
 4. 填写数据库、站点地址，勾选「强制 HTTPS」；
 5. 提交后自动建表、生成配置与主密钥、导入表情；
-6. **删除 `install.php`**（保留也无妨：`storage/installed.lock` 存在时返回 404）。
+6. **删除 `install.php` 与 `setup.php`**。安装页不做「已安装」检测，保留时可再次访问并重新安装（会覆盖 `config/config.php`，不会删除数据库已有数据）。
 
 ### 3.2 命令行安装
 
@@ -204,6 +204,8 @@ find storage/logs -name '*.log' -mtime +30 -delete
 4. 修改法律文档后同步提升 `config/legal_versions.php` 版本号，用户下次登录会收到重新同意弹窗；
 5. 访问站点确认登录、发消息、上传图片正常。
 
+静态资源引用统一带 `?v=SC_VERSION`，覆盖代码后浏览器会重新拉取；若仍看到旧界面，确认 `app/bootstrap.php` 的 `SC_VERSION` 已随版本更新，并强刷一次。
+
 ## 七、故障排查
 
 | 现象 | 可能原因 | 处理 |
@@ -217,6 +219,10 @@ find storage/logs -name '*.log' -mtime +30 -delete
 | 群聊提示「群密钥尚未就绪」 | 新成员未收到群密钥封装 | 让邀请者在群资料页重新邀请该成员 |
 | 头像 404 | 未上传头像 | 正常占位；上传后自动生效 |
 | 上传失败 | 超过大小限制或目录不可写 | 检查 `media/` 权限与 `php.ini` 的 `upload_max_filesize` |
+| 登录成功后立刻提示「登录已过期」 | 主机（CGI/FastCGI）剥离了 `Authorization` 请求头 | 确认已上传最新 `.htaccess`（含透传规则）；程序同时发送 `X-Auth-Token` 兜底。覆盖后强刷一次 |
+| 更新代码后界面仍是旧版 | 浏览器缓存了 30 天的 JS/CSS | 资源已带 `?v=版本号`；确认覆盖了 `index.php` 与 `app/bootstrap.php`，再强刷一次 |
+| 客服显示「尚未上线」 | 客服账号从未登录，服务器没有其公钥 | 用 `kefu` 登录一次；登录时浏览器会生成并上传公钥 |
+| 安装页显示「已安装」 | `storage/installed.lock` 有内容 | 需要重装时删除该文件再刷新；新版安装页不会因空文件误判 |
 
 ## 八、安全加固清单
 

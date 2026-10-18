@@ -30,7 +30,7 @@ function sc_legal_page_html(string $doc): string
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title><?php echo sc_e($meta['title']); ?> · <?php echo sc_e($siteName); ?></title>
-<link rel="stylesheet" href="/assets/css/app.css">
+<link rel="stylesheet" href="/assets/css/app.css?v=<?php echo SC_VERSION; ?>">
 <link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg">
 </head>
 <body class="page-doc">

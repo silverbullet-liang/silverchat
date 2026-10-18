@@ -421,6 +421,8 @@
       '<circle cx="26" cy="34" r="2.4" fill="#07c160"/><circle cx="34" cy="34" r="2.4" fill="#07c160"/><circle cx="42" cy="34" r="2.4" fill="#07c160"/></svg>' +
       '<div style="font-size:19px;font-weight:600">SilverChat</div>' +
       '<div class="muted small" style="margin-top:4px">版本 ' + SC.version + '</div>' +
+      '<div class="tiny muted" style="margin-top:10px">开源协议 AGPL-3.0 · ' +
+      '<a href="https://github.com/silverbullet-liang/silverchat" target="_blank" rel="noopener">源码仓库</a></div>' +
       '</div>' +
       '<div class="cell-group">' +
       '<a class="list-item no-avatar" href="/legal.php?doc=terms"><span class="list-item-body"><span class="list-item-title"><span>用户协议</span></span></span><span class="list-item-arrow">' + SC.icon('arrow', 18) + '</span></a>' +

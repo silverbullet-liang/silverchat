@@ -87,7 +87,7 @@ secrets/master.key（Web 根之外，字段加密主密钥）
 
 ## 快速开始
 
-环境要求：PHP 7.0+（扩展 `pdo_mysql`、`openssl`、`mbstring`、`gd`、`json`）、MySQL 5.7+ / MariaDB。
+环境要求：PHP 7.0+（必需扩展 `pdo_mysql`、`openssl`、`mbstring`、`json`；`gd` 可选，用于头像裁剪）、MySQL 5.7+ / MariaDB。
 
 > **必须使用 HTTPS**：Web Crypto（`crypto.subtle`）只在安全上下文中可用。通过 `http://` 加域名或 IP 访问时，Chrome、Edge、Firefox、Safari 都会禁用它，页面会提示「需要 HTTPS 访问」。本地调试请用 `http://localhost` 或 `http://127.0.0.1`（这两个地址被视为安全上下文）。
 
@@ -95,7 +95,7 @@ secrets/master.key（Web 根之外，字段加密主密钥）
 # 1. 上传到站点根目录，确保 config/、secrets/、storage/、media/ 可写
 # 2. 创建数据库（utf8mb4）
 # 3. 浏览器访问 /install.php，填写数据库与站点地址
-# 4. 安装完成后删除 install.php（已安装状态下它也会返回 404）
+# 4. 安装完成后删除 install.php 与 setup.php
 # 5. 访问首页注册第一个账号
 ```
 
@@ -123,7 +123,7 @@ assets/emoji/builtin/   内置表情图片与 manifest
 config/                 配置样例与法律文档版本
 legal/                  五份法律文档（Markdown，服务端渲染）
 sql/schema.sql          数据库结构
-tools/                  辅助脚本（表情拉取、语法检查）
+tools/                  运维脚本（改客服密码、生成主密钥）
 docs/                   部署、架构、API 文档
 media/                  运行时媒体目录（不纳入版本控制）
 secrets/                主密钥（不纳入版本控制）
@@ -147,6 +147,9 @@ storage/                安装锁与日志（不纳入版本控制）
 - 群密钥依赖成员在线分发；新成员加入后需由邀请者完成封装。
 - 共享主机无法使用 WebSocket 与 Cron，实时性依赖 4 秒轮询。
 - 动态图片为多接收者可见，采用服务器端加密（非端到端加密）。
+- 注销账号后用户名不释放，避免被他人冒用；确需重新使用，需在数据库中手工清除该行的 `username_bidx`。
+- 群密钥由成员客户端封装，服务器无法验证封装内容，恶意群成员理论上可给新成员写入无效密钥（E2EE 固有边界）。
+- 浏览器会缓存静态资源 30 天；程序通过 `?v=SC_VERSION` 自动失效，覆盖代码后若仍是旧界面，强刷一次。
 
 ## 部署
 

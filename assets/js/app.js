@@ -15,7 +15,7 @@
       // 客服账号只能停留在工作台与具体的单聊页
       if (SC.state.user && SC.state.user.is_staff) {
         var path = (location.pathname.replace(/\/+$/, '') || '/');
-        var allowed = path === '/kefu' || /^\/chat\/\d+$/.test(path);
+        var allowed = path === '/kefu' || /^\/talk\/\d+$/.test(path);
         if (!allowed) {
           history.replaceState(null, '', '/kefu');
           SC.pages.kefu();

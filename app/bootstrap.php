@@ -7,7 +7,7 @@ declare(strict_types=1);
  */
 
 define('SC_ROOT', dirname(__DIR__));
-define('SC_VERSION', '1.0.3');
+define('SC_VERSION', '1.0.4');
 
 if (!defined('SC_CLI')) {
     define('SC_CLI', PHP_SAPI === 'cli');
@@ -16,11 +16,6 @@ if (!defined('SC_CLI')) {
 function sc_config_path(): string
 {
     return SC_ROOT . '/config/config.php';
-}
-
-function sc_is_installed(): bool
-{
-    return is_file(sc_config_path()) && is_file(SC_ROOT . '/storage/installed.lock');
 }
 
 function sc_config(): array
@@ -63,7 +58,14 @@ function sc_is_https(): bool
     if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
         return true;
     }
-    return isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https';
+    // 仅在可信代理之后才采信转发头，避免客户端伪造
+    $trusted = (array) sc_cfg('site.trusted_proxies', array());
+    if ($trusted && sc_ip_in_ranges((string) ($_SERVER['REMOTE_ADDR'] ?? ''), $trusted)
+        && isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
+        && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+        return true;
+    }
+    return false;
 }
 
 function sc_base_url(): string
@@ -142,7 +144,11 @@ function sc_boot()
     }
 
     if (!SC_CLI && sc_cfg('site.force_https', false) && !sc_is_https()) {
-        $host = $_SERVER['HTTP_HOST'] ?? '';
+        // 只用配置里的站点域名跳转，避免 Host 头被伪造后变成开放重定向
+        $host = (string) parse_url((string) sc_cfg('site.url', ''), PHP_URL_HOST);
+        if ($host === '') {
+            $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+        }
         $uri = $_SERVER['REQUEST_URI'] ?? '/';
         header('Location: https://' . $host . $uri, true, 301);
         exit;

@@ -37,7 +37,7 @@
 
     var page = SC.qs('#mtPage');
     var listEl = SC.qs('#mtList');
-    var offset = 0;
+    var beforeId = 0;
     var loading = false;
     var hasMore = true;
     var moments = [];
@@ -178,11 +178,12 @@
     function load(reset) {
       if (loading) { return; }
       loading = true;
-      if (reset) { offset = 0; hasMore = true; }
-      SC.api('moment/feed?offset=' + offset + '&limit=20').then(function (data) {
+      if (reset) { beforeId = 0; hasMore = true; }
+      SC.api('moment/feed?before_id=' + beforeId + '&limit=20').then(function (data) {
         if (reset) { moments = []; }
-        moments = moments.concat(data.moments || []);
-        offset += (data.moments || []).length;
+        var list = data.moments || [];
+        moments = moments.concat(list);
+        if (list.length) { beforeId = list[list.length - 1].id; }
         hasMore = data.has_more;
         renderList();
         loading = false;

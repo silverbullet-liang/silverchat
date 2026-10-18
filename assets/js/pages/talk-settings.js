@@ -47,16 +47,23 @@
       if (conv.type === 1) {
         list.appendChild(linkRow('对方资料', function () { SC.navigate('/user/' + conv.public_id); }));
       } else {
-        list.appendChild(textRow('群名称', conv.title, function () { editGroupName(conv); }));
-        list.appendChild(textRow('群公告', '查看与编辑', function () { editNotice(conv); }));
+        var isOwner = conv.my_role === 2;
+        if (isOwner) {
+          list.appendChild(textRow('群名称', conv.title, function () { editGroupName(conv); }));
+          list.appendChild(textRow('群公告', '查看与编辑', function () { editNotice(conv); }));
+        } else if (conv.my_role === 1) {
+          list.appendChild(textRow('群公告', '查看与编辑', function () { editNotice(conv); }));
+        }
         list.appendChild(textRow('我的群昵称', '', function () { editMyNickname(conv); }));
         list.appendChild(copyRow('群号', conv.public_id));
-        list.appendChild(toggleRow('仅邀请加入', conv.join_mode && conv.join_mode !== 1, function (on) {
-          SC.api('group/update', { body: { public_id: conv.public_id, join_mode: on ? 2 : 1 } }).then(function () {
-            conv.join_mode = on ? 2 : 1;
-            SC.toast('已更新');
-          }).catch(function (e) { SC.toast(e.message, 'error'); });
-        }));
+        if (isOwner) {
+          list.appendChild(toggleRow('仅邀请加入', conv.join_mode === 2, function (on) {
+            SC.api('group/update', { body: { public_id: conv.public_id, join_mode: on ? 2 : 1 } }).then(function () {
+              conv.join_mode = on ? 2 : 1;
+              SC.toast('已更新');
+            }).catch(function (e) { SC.toast(e.message, 'error'); });
+          }));
+        }
       }
 
       list.appendChild(linkRow('加密安全码', function () { SC.navigate('/talk/' + convId + '/verify'); }));
@@ -97,8 +104,17 @@
             });
           });
         }));
+      } else if (conv.type === 1) {
+        danger.appendChild(dangerRow('删除会话', function () {
+          SC.dialog({ title: '删除会话', content: '仅从你的会话列表移除，不影响客服。', confirmText: '删除', danger: true }).then(function (ok) {
+            if (!ok) { return; }
+            SC.api('conversation/delete', { body: { conv_id: convId } }).then(function () {
+              SC.toast('已删除');
+              SC.navigate('/', true);
+            });
+          });
+        }));
       } else {
-        var isOwner = conv.member_count > 0;
         danger.appendChild(dangerRow('退出群聊', function () {
           SC.dialog({
             title: '退出群聊',
