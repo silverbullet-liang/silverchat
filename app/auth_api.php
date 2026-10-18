@@ -519,7 +519,10 @@ function api_user_avatar()
     if ($raw === false || $raw === '') {
         sc_fail(1503);
     }
-    if (function_exists('imagecreatefromstring')) {
+    if ((int) $info[2] === IMAGETYPE_GIF) {
+        // GIF 保留原始字节与动画，不转 JPEG、不裁剪
+        $image = $raw;
+    } elseif (function_exists('imagecreatefromstring')) {
         $src = @imagecreatefromstring($raw);
         if (!$src) {
             sc_fail(1502);
@@ -537,17 +540,17 @@ function api_user_avatar()
         imagecopyresampled($dst, $src, (int) (($size - $nw) / 2), (int) (($size - $nh) / 2), 0, 0, $nw, $nh, $w, $h);
         ob_start();
         imagejpeg($dst, null, 88);
-        $jpeg = ob_get_clean();
+        $image = ob_get_clean();
         imagedestroy($src);
         imagedestroy($dst);
     } else {
         // 未启用 GD：保留原图，前端按圆形裁切
-        $jpeg = $raw;
+        $image = $raw;
     }
 
     sc_ensure_dir(SC_ROOT . '/media/avatar');
     $path = 'media/avatar/' . (int) $u['id'] . '.enc';
-    $enc = field_encrypt($jpeg);
+    $enc = field_encrypt($image);
     if (@file_put_contents(SC_ROOT . '/' . $path, $enc) === false) {
         sc_fail(1503);
     }
@@ -576,8 +579,22 @@ function api_avatar_output(string $key)
         http_response_code(404);
         exit;
     }
-    header('Content-Type: image/jpeg');
-    header('Cache-Control: private, max-age=3600');
+    $info = @getimagesizefromstring($data);
+    $mimeMap = array(
+        IMAGETYPE_GIF  => 'image/gif',
+        IMAGETYPE_PNG  => 'image/png',
+        IMAGETYPE_WEBP => 'image/webp',
+        IMAGETYPE_JPEG => 'image/jpeg',
+    );
+    $mime = ($info && isset($mimeMap[$info[2]])) ? $mimeMap[$info[2]] : 'image/jpeg';
+    header('Content-Type: ' . $mime);
+    $etag = '"' . md5($data) . '"';
+    header('ETag: ' . $etag);
+    header('Cache-Control: private, no-cache');
+    if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim((string) $_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
+        http_response_code(304);
+        exit;
+    }
     header('Content-Length: ' . strlen($data));
     echo $data;
     exit;

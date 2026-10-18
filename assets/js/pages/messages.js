@@ -227,6 +227,18 @@
           SC.navigate('/talk/' + convId + '/settings');
         });
       }
+      renderNotice();
+    }
+
+    /** 群公告条；群资料更新后重新进入会话即刷新 */
+    function renderNotice() {
+      var old = SC.qs('.group-notice');
+      if (old && old.parentNode) { old.parentNode.removeChild(old); }
+      if (!conv || conv.type !== 2 || !conv.notice) { return; }
+      var shell = SC.qs('.chat-shell');
+      if (!shell) { return; }
+      var bar = SC.el('div', { class: 'group-notice', text: '群公告：' + conv.notice });
+      shell.insertBefore(bar, stream);
     }
 
     /** 客服会话顶部实时状态条 */
@@ -405,7 +417,19 @@
         var body = SC.el('span', { class: 'bubble-text', text: msg.text || '' });
         bubble.appendChild(body);
       }
-      if (msg.status === -1) { bubble.classList.add('bubble-failed'); }
+      if (msg.status === -1) {
+        bubble.classList.add('bubble-failed');
+        if (mine) {
+          bubble.title = '点击重发';
+          bubble.addEventListener('click', function () {
+            if (msg.retrying) { return; }
+            msg.retrying = true;
+            messages = messages.filter(function (m) { return m !== msg; });
+            renderAll();
+            submitMessage(msg.text || '', msg.type, msg.extra || null).catch(function () {});
+          });
+        }
+      }
       line.appendChild(bubble);
 
       if (mine && msg.type !== 99) {

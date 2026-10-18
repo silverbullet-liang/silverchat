@@ -7,7 +7,7 @@ declare(strict_types=1);
  */
 
 define('SC_ROOT', dirname(__DIR__));
-define('SC_VERSION', '1.0.4');
+define('SC_VERSION', '1.0.5');
 
 if (!defined('SC_CLI')) {
     define('SC_CLI', PHP_SAPI === 'cli');

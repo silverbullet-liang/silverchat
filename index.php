@@ -29,6 +29,7 @@ if ($legalDoc !== null) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f7f7f7">
+<meta name="sc-version" content="<?php echo SC_VERSION; ?>">
 <meta name="robots" content="noindex, nofollow">
 <title><?php echo sc_e($siteName); ?></title>
 <link rel="stylesheet" href="/assets/css/app.css?v=<?php echo SC_VERSION; ?>">

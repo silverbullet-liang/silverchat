@@ -536,11 +536,26 @@
         body.appendChild(notice);
       }
 
+      var me = SC.state.user ? SC.state.user.public_id : '';
+      var isOwner = !!(g.owner && g.owner.public_id === me);
       var grid = SC.el('div', { class: 'member-grid' });
       members.slice(0, 15).forEach(function (m) {
         var cell = SC.el('div', { class: 'member-cell' });
         cell.innerHTML = SC.ui.avatar(m.public_id, m.nickname, '', true) + '<span>' + SC.esc(m.nickname) + '</span>';
-        cell.addEventListener('click', function () { SC.navigate('/user/' + m.public_id); });
+        cell.addEventListener('click', function () {
+          if (!isOwner || m.public_id === me) { SC.navigate('/user/' + m.public_id); return; }
+          SC.actions([{ label: '查看资料' }, { label: '移出群聊', danger: true }], m.nickname).then(function (idx) {
+            if (idx === 0) { SC.navigate('/user/' + m.public_id); return; }
+            if (idx !== 1) { return; }
+            SC.dialog({ title: '移出群聊', content: '确定将「' + m.nickname + '」移出群聊？', confirmText: '移出', danger: true }).then(function (ok) {
+              if (!ok) { return; }
+              SC.api('group/kick', { body: { public_id: g.public_id, user_public_id: m.public_id } }).then(function () {
+                SC.toast('已移出');
+                SC.render();
+              }).catch(function (e) { SC.toast(e.message, 'error'); });
+            });
+          });
+        });
         grid.appendChild(cell);
       });
       body.appendChild(grid);

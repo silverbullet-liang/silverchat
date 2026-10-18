@@ -5,7 +5,8 @@
   var SC = window.SC = window.SC || {};
 
   /* ---------------------------------------------------------------- 基础状态 */
-  SC.version = '1.0.0';
+  var versionMeta = document.querySelector('meta[name="sc-version"]');
+  SC.version = versionMeta ? versionMeta.getAttribute('content') : '1.0.0';
   SC.state = {
     user: null,
     conversations: [],
@@ -309,7 +310,13 @@
       mask.appendChild(dialog);
       document.body.appendChild(mask);
 
-      function done(val) { closeMask(mask); resolve(val); }
+      function onKey(e) { if (e.key === 'Escape') { done(null); } }
+      function done(val) {
+        document.removeEventListener('keydown', onKey);
+        closeMask(mask);
+        resolve(val);
+      }
+      document.addEventListener('keydown', onKey);
       cancelBtn.addEventListener('click', function () { done(null); });
       okBtn.addEventListener('click', function () {
         if (!opts.input) { done(true); return; }
@@ -328,32 +335,46 @@
       var mask = SC.el('div', { class: 'mask bottom' });
       var sheet = SC.el('div', { class: 'action-sheet' });
       if (title) { sheet.appendChild(SC.el('div', { class: 'action-sheet-title', text: title })); }
+      function onKey(e) { if (e.key === 'Escape') { done(-1); } }
+      function done(val) {
+        document.removeEventListener('keydown', onKey);
+        closeMask(mask);
+        resolve(val);
+      }
+      document.addEventListener('keydown', onKey);
       items.forEach(function (it, idx) {
         var btn = SC.el('button', {
           type: 'button',
           class: 'action-sheet-item' + (it.danger ? ' danger' : ''),
           text: it.label
         });
-        btn.addEventListener('click', function () { closeMask(mask); resolve(idx); });
+        btn.addEventListener('click', function () { done(idx); });
         sheet.appendChild(btn);
       });
       var cancel = SC.el('button', { type: 'button', class: 'action-sheet-item action-sheet-cancel', text: '取消' });
-      cancel.addEventListener('click', function () { closeMask(mask); resolve(-1); });
+      cancel.addEventListener('click', function () { done(-1); });
       sheet.appendChild(cancel);
       mask.appendChild(sheet);
       document.body.appendChild(mask);
-      mask.addEventListener('click', function (e) { if (e.target === mask) { closeMask(mask); resolve(-1); } });
+      mask.addEventListener('click', function (e) { if (e.target === mask) { done(-1); } });
     });
   };
 
   /** 图片全屏预览 */
   SC.imageViewer = function (src) {
-    var mask = SC.el('div', { class: 'mask', style: 'background:rgba(0,0,0,.92);padding:0' });
+    SC.qsa('.mask.viewer').forEach(function (m) { if (m.parentNode) { m.parentNode.removeChild(m); } });
+    var mask = SC.el('div', { class: 'mask viewer', style: 'background:rgba(0,0,0,.92);padding:0' });
     var img = SC.el('img', { src: src, style: 'max-width:100%;max-height:100vh;object-fit:contain' });
     img.draggable = false;
     mask.appendChild(img);
     document.body.appendChild(mask);
-    mask.addEventListener('click', function () { closeMask(mask); });
+    function onKey(e) { if (e.key === 'Escape') { close(); } }
+    function close() {
+      document.removeEventListener('keydown', onKey);
+      closeMask(mask);
+    }
+    document.addEventListener('keydown', onKey);
+    mask.addEventListener('click', close);
   };
 
   /* ------------------------------------------------------------------ 路由 */

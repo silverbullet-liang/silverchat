@@ -103,6 +103,7 @@ function sc_conv_payload(array $uc, int $myId): array
             $conv['member_count'] = (int) db_val('SELECT COUNT(*) FROM group_members WHERE group_id = ?', array($groupId));
             $conv['group_id'] = $groupId;
             $conv['join_mode'] = (int) $g['join_mode'];
+            $conv['notice'] = (string) field_decrypt($g['notice_enc']);
             $conv['my_role'] = (int) db_val(
                 'SELECT role FROM group_members WHERE group_id = ? AND user_id = ?',
                 array($groupId, $myId)
