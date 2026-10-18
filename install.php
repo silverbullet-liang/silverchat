@@ -110,6 +110,16 @@ if ($install) {
                     'max_image' => 5242880, 'max_voice' => 10485760, 'max_video' => 52428800,
                     'max_file' => 20971520, 'ttl' => 604800,
                 ),
+                'call' => array(
+                    // 公开 STUN（2026-10 实测）；可在 config 中替换为自建 STUN
+                    'stun' => array(
+                        'stun:stun.miwifi.com:3478',
+                        'stun:stun.chat.bilibili.com:3478',
+                        'stun:stun.hitv.com:3478',
+                        'stun:stun.douyucdn.cn:18000',
+                        'stun:stun.l.google.com:19302',
+                    ),
+                ),
             );
             if (!sc_ensure_dir(SC_ROOT . '/config')) {
                 throw new RuntimeException('无法创建 config 目录');
@@ -203,7 +213,7 @@ if ($done) {
 <body class="page-install">
 <main class="install-card">
   <h1>SilverChat 安装</h1>
-  <p class="small muted" style="margin:2px 0 12px">安装程序 1.0.5 · 2026-10-19</p>
+  <p class="small muted" style="margin:2px 0 12px">安装程序 1.1.0 · 2026-10-19</p>
   <p class="muted">填写数据库信息，安装程序会建表并生成主密钥。安装完成后请删除 install.php 与 setup.php。</p>
   <?php foreach ($errors as $e): ?>
     <div class="alert alert-danger"><?php echo htmlspecialchars($e, ENT_QUOTES, 'UTF-8'); ?></div>

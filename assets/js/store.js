@@ -264,6 +264,9 @@
         if (data.read_map) {
           SC.emit('poll:read', data.read_map);
         }
+        if (data.incoming_call && data.incoming_call.id) {
+          SC.emit('poll:call', data.incoming_call);
+        }
         schedule(interval());
       }, function () {
         busy = false;

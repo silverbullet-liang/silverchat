@@ -210,11 +210,16 @@
 
     function renderNav() {
       var isStaff = SC.state.user && SC.state.user.is_staff;
+      var callBtns = '';
+      if (!isStaff && conv && conv.type === 1 && !conv.peer_is_staff) {
+        callBtns = '<button class="navbar-icon" type="button" id="chatVoice" aria-label="语音通话">' + SC.icon('mic', 20) + '</button>' +
+          '<button class="navbar-icon" type="button" id="chatVideo" aria-label="视频通话">' + SC.icon('camera', 20) + '</button>';
+      }
       navEl.innerHTML = SC.ui.navbar({
         title: conv ? conv.title : '聊天',
         right: (isStaff
           ? '<button class="navbar-action primary" type="button" id="chatDesk">工作台</button>'
-          : '<button class="navbar-icon" type="button" id="chatMore" aria-label="更多">' + SC.icon('more', 22) + '</button>')
+          : callBtns + '<button class="navbar-icon" type="button" id="chatMore" aria-label="更多">' + SC.icon('more', 22) + '</button>')
       });
       var t = navEl.querySelector('.navbar-title');
       if (conv && conv.type === 2) {
@@ -223,6 +228,10 @@
       if (isStaff) {
         navEl.querySelector('#chatDesk').addEventListener('click', function () { SC.navigate('/kefu', true); });
       } else {
+        var voiceBtn = navEl.querySelector('#chatVoice');
+        if (voiceBtn) { voiceBtn.addEventListener('click', function () { SC.call.start(convId, 1); }); }
+        var videoBtn = navEl.querySelector('#chatVideo');
+        if (videoBtn) { videoBtn.addEventListener('click', function () { SC.call.start(convId, 2); }); }
         navEl.querySelector('#chatMore').addEventListener('click', function () {
           SC.navigate('/talk/' + convId + '/settings');
         });

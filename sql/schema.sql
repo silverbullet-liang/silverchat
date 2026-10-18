@@ -262,3 +262,31 @@ CREATE TABLE IF NOT EXISTS group_keys (
   created_at INT UNSIGNED NOT NULL,
   PRIMARY KEY (group_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 语音/视频通话：媒体走 WebRTC P2P，服务器只存通话记录
+CREATE TABLE IF NOT EXISTS calls (
+  id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  conv_id    INT UNSIGNED NOT NULL,
+  caller_id  INT UNSIGNED NOT NULL,
+  callee_id  INT UNSIGNED NOT NULL,
+  media_type TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  status     TINYINT NOT NULL DEFAULT 0,
+  started_at INT UNSIGNED NOT NULL DEFAULT 0,
+  ended_at   INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at INT UNSIGNED NOT NULL,
+  KEY idx_callee_status (callee_id, status),
+  KEY idx_conv (conv_id, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 信令（SDP / ICE）：只在通话存续期间需要，结束后删除
+CREATE TABLE IF NOT EXISTS call_signals (
+  id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  call_id    BIGINT UNSIGNED NOT NULL,
+  from_id    INT UNSIGNED NOT NULL,
+  to_id      INT UNSIGNED NOT NULL,
+  kind       VARCHAR(16) NOT NULL,
+  payload    MEDIUMTEXT NOT NULL,
+  created_at INT UNSIGNED NOT NULL,
+  KEY idx_to (to_id, id),
+  KEY idx_call (call_id, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

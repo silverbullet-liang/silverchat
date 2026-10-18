@@ -32,6 +32,7 @@ require_once __DIR__ . '/app/emoji_api.php';
 require_once __DIR__ . '/app/poll_api.php';
 require_once __DIR__ . '/app/search_api.php';
 require_once __DIR__ . '/app/kefu_api.php';
+require_once __DIR__ . '/app/call_api.php';
 
 sc_boot();
 sc_security_headers(false);
@@ -148,6 +149,13 @@ $routes = array(
 
     'GET kefu/status'             => 'api_kefu_status',
     'POST kefu/start'             => 'api_kefu_start',
+
+    'POST call/start'             => 'api_call_start',
+    'POST call/signal'            => 'api_call_signal',
+    'GET call/poll'               => 'api_call_poll',
+    'POST call/answer'            => 'api_call_answer',
+    'POST call/end'               => 'api_call_end',
+    'GET call/history'            => 'api_call_history',
 );
 
 $key = $method . ' ' . $path;

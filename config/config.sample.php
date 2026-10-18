@@ -43,4 +43,14 @@ return array(
         'max_file'  => 20971520,   // 20 MB
         'ttl'       => 604800,     // 7 天
     ),
+    'call' => array(
+        // 公开 STUN（2026-10 实测可用，可自行替换）。留空时程序使用同一组内置默认值。
+        'stun' => array(
+            'stun:stun.miwifi.com:3478',
+            'stun:stun.chat.bilibili.com:3478',
+            'stun:stun.hitv.com:3478',
+            'stun:stun.douyucdn.cn:18000',
+            'stun:stun.l.google.com:19302',
+        ),
+    ),
 );

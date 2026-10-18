@@ -301,6 +301,24 @@ SC.poll: 4 秒（可见）/ 15 秒（隐藏）/ 失败指数退避 4→8→16→
 - CSP 禁止内联脚本，事件全部通过 `addEventListener` 绑定；
 - 媒体 URL 使用 `blob:`，不把用户文件内容拼进 DOM 字符串。
 
+### 6.5 通话（WebRTC）
+
+```
+主叫                          服务器                          被叫
+ │ POST /call/start ───────────>│ 写入 calls(status=0)          │
+ │ createOffer + ICE ──────────>│ 存 call_signals(offer/ice)    │
+ │                             │<──── 普通轮询看到 incoming_call │
+ │                             │<──── POST /call/answer(accept) │
+ │<──── poll 拿到 answer/ice ──│                               │
+ │<════════ DTLS-SRTP 媒体流 P2P 直连（不经服务器）═════════════>│
+ │ POST /call/end ─────────────>│ status=2/3，删除信令           │
+```
+
+- 媒体不经过服务器：音视频在浏览器之间直接传输，WebRTC 强制 DTLS-SRTP 加密。
+- 信令走现有 HTTP 轮询：呼叫方 1 秒轮询 `/call/poll`，被叫方复用 4 秒的 `/poll.php` 收来电。
+- STUN 只用于发现公网地址；未部署 TURN，对称 NAT 场景可能无法直连。
+- 通话记录写入 `calls`（主叫、被叫、类型、状态、起止时间），不保存任何媒体内容。
+
 ## 七、媒体生命周期
 
 ### 7.1 四个惰性清理触发点

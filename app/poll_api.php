@@ -140,6 +140,30 @@ function api_poll()
         }
     }
 
+    // 超过 60 秒未接听的通话标记为未接
+    db_exec('UPDATE calls SET status = 3, ended_at = ? WHERE status = 0 AND created_at < ?', array(time(), time() - 60));
+
+    // 未接来电：呼叫后 60 秒内有效，复用本次轮询下发给被叫方
+    $incoming = db_one(
+        'SELECT * FROM calls WHERE callee_id = ? AND status = 0 AND created_at > ? ORDER BY id DESC LIMIT 1',
+        array($me, time() - 60)
+    );
+    $incomingCall = null;
+    if ($incoming) {
+        $caller = sc_user_by_id((int) $incoming['caller_id']);
+        $incomingCall = array(
+            'id'         => (int) $incoming['id'],
+            'conv_id'    => (int) $incoming['conv_id'],
+            'media_type' => (int) $incoming['media_type'],
+            'created_at' => (int) $incoming['created_at'],
+            'caller'     => $caller ? array(
+                'public_id' => $caller['public_id'],
+                'nickname'  => $caller['nickname'],
+                'avatar'    => $caller['avatar'],
+            ) : null,
+        );
+    }
+
     db_exec('UPDATE user_devices SET last_seen_at = ? WHERE user_id = ? AND device_id = ?',
         array(time(), $me, $u['device_id']));
     sc_poll_tick_cleanup($me);
@@ -150,6 +174,7 @@ function api_poll()
         'friend_requests' => $friendRequests,
         'moment_notices'  => $notices,
         'read_map'        => (object) $readMap,
+        'incoming_call'   => $incomingCall,
         'cursor'          => $maxId,
         'server_time'     => time(),
     ));

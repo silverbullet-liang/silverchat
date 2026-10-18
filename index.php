@@ -61,6 +61,7 @@ if ($legalDoc !== null) {
 <script src="/assets/js/pages/discover.js?v=<?php echo SC_VERSION; ?>"></script>
 <script src="/assets/js/pages/me.js?v=<?php echo SC_VERSION; ?>"></script>
 <script src="/assets/js/pages/kefu.js?v=<?php echo SC_VERSION; ?>"></script>
+<script src="/assets/js/pages/call.js?v=<?php echo SC_VERSION; ?>"></script>
 <script src="/assets/js/app.js?v=<?php echo SC_VERSION; ?>"></script>
 </body>
 </html>

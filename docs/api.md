@@ -271,6 +271,24 @@
 
 `kefu/start` 返回 `{conv_id, kefu:{public_id, nickname, online, has_key}}`。客服账号登录后只能访问消息相关接口，其余接口返回 1003。
 
+## 通话
+
+仅两人单聊；媒体流通过 WebRTC P2P 直连（DTLS-SRTP 加密），服务器只转发 SDP/ICE 与保存记录。
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/call/start` | `{conv_id, media_type}`，1 语音 / 2 视频；返回 `call` 与 `ice_servers` |
+| POST | `/call/signal` | `{call_id, kind, payload}`，kind=`offer`/`answer`/`ice` |
+| GET | `/call/poll?call_id=&after_id=` | 拉取新信令与通话状态（建议 1 秒一次） |
+| POST | `/call/answer` | `{call_id, accept}`，仅被叫方可调用；接听时返回 `ice_servers` |
+| POST | `/call/end` | `{call_id}`，任一方挂断 |
+| GET | `/call/history?conv_id=&limit=` | 通话记录（含时长） |
+
+- 呼叫建立后，被叫方的普通轮询（`/poll.php`）会返回 `incoming_call`，用于弹来电界面。
+- 状态：0 呼叫中、1 通话中、2 已结束、3 未接听、4 已拒绝。
+- 同一用户同一时间只允许一通通话；60 秒未接听自动置为未接。
+- 信令在通话结束后立即删除，通话记录保留。
+
 ## 搜索与法律
 
 | 方法 | 路径 | 说明 |
