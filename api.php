@@ -6,6 +6,21 @@ declare(strict_types=1);
  * 统一响应 {code, msg, data}，code=0 成功。
  */
 
+// 致命错误（含解析错误）也返回 JSON，避免主机直接抛空白 500
+register_shutdown_function(function () {
+    $err = error_get_last();
+    if (!$err || !in_array($err['type'], array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR), true)) {
+        return;
+    }
+    if (headers_sent()) {
+        return;
+    }
+    error_log('[silverchat] ' . $err['message'] . ' @ ' . $err['file'] . ':' . $err['line']);
+    http_response_code(500);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(array('code' => 1001, 'msg' => '服务异常，请访问 /diag.php 检查环境', 'data' => null), JSON_UNESCAPED_UNICODE);
+});
+
 require_once __DIR__ . '/app/bootstrap.php';
 require_once __DIR__ . '/app/helpers.php';
 require_once __DIR__ . '/app/auth_api.php';
@@ -159,5 +174,5 @@ try {
     if ((bool) sc_cfg('site.debug', false)) {
         sc_fail(1001, '服务异常：' . $e->getMessage(), 500);
     }
-    sc_fail(1001, '服务暂时不可用，请稍后重试', 500);
+    sc_fail(1001, sc_error_hint($e), 500);
 }

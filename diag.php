@@ -135,6 +135,22 @@ foreach ($items as $it) {
     </tbody>
   </table>
 
+  <?php if (!$keyOk): ?>
+  <div class="alert alert-danger" style="margin-top:18px">
+    主密钥缺失：在服务器执行 <code>php tools/make_key.php</code>；没有命令行权限时，删除 <code>storage/installed.lock</code> 后重新访问 <code>/install.php</code>。若数据库已有账号数据，补生成密钥会导致旧数据无法解密。
+  </div>
+  <?php endif; ?>
+  <?php if ($missing): ?>
+  <div class="alert alert-danger" style="margin-top:12px">
+    数据表缺失：导入 <code>sql/schema.sql</code>，或重新运行 <code>/install.php</code>。
+  </div>
+  <?php endif; ?>
+  <?php if (!$dbOk): ?>
+  <div class="alert alert-danger" style="margin-top:12px">
+    数据库连接失败：检查 <code>config/config.php</code> 中的主机、库名、账号、密码，以及主机面板是否允许远程连接。
+  </div>
+  <?php endif; ?>
+
   <?php if ($logTail !== ''): ?>
   <h2 style="font-size:16px;margin-top:22px">最近应用日志</h2>
   <pre style="background:#f7f7f7;padding:12px;border-radius:8px;overflow:auto;font-size:12px;line-height:18px"><?php

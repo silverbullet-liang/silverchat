@@ -54,11 +54,12 @@
       '<input class="input" id="loginPass" type="password" placeholder="密码" autocomplete="current-password" maxlength="128">' +
       '<button class="input-eye" type="button" id="loginEye" aria-label="显示密码">' + SC.icon('eye', 20) + '</button>' +
       '</div></label>' +
-      '<button class="btn btn-primary btn-block btn-muted" type="button" id="loginBtn">登录</button>' +
+      '<button class="btn btn-primary btn-block" type="button" id="loginBtn">登录</button>' +
       '</div>' +
       consentHtml('login') +
       '<div class="auth-links"><a href="/register" data-link>没有账号？立即注册</a><a href="/reset" data-link>忘记密码</a></div>' +
       '<p class="tiny muted" style="margin-top:22px;line-height:18px">加密密钥只保存在本机。在新设备登录会生成新的密钥，历史消息将无法解密。</p>' +
+      '<p class="tiny muted" style="margin-top:10px">打不开或报 500？<a href="/diag.php" target="_blank" rel="noopener">运行环境自检</a></p>' +
       '</div>';
 
     var userEl = SC.qs('#loginUser');
@@ -68,7 +69,7 @@
 
     function refresh() {
       var ready = !!(consent.checked && userEl.value.trim() && passEl.value);
-      btn.classList.toggle('btn-muted', !ready);
+      btn.setAttribute('aria-disabled', ready ? 'false' : 'true');
     }
     [userEl, passEl].forEach(function (el) { el.addEventListener('input', refresh); });
     consent.addEventListener('change', refresh);
@@ -173,7 +174,7 @@
       '<input class="input" id="regQuestion" maxlength="50" placeholder="例如：我的第一只宠物叫什么"></label>' +
       '<label class="field"><span>安全问题答案</span>' +
       '<input class="input" id="regAnswer" maxlength="50" placeholder="答案不区分大小写"></label>' +
-      '<button class="btn btn-primary btn-block btn-muted" type="button" id="regBtn">注册</button>' +
+      '<button class="btn btn-primary btn-block" type="button" id="regBtn">注册</button>' +
       '</div>' +
       consentHtml('reg') +
       '<div class="auth-links"><span></span><a href="/login" data-link>已有账号？去登录</a></div>' +
@@ -204,7 +205,7 @@
       }
       var ok = uv.ok && passEl.value.length >= 6 && passEl.value === pass2El.value &&
         nickEl.value.trim().length >= 1 && nickEl.value.trim().length <= 16 && consent.checked;
-      btn.classList.toggle('btn-muted', !ok);
+      btn.setAttribute('aria-disabled', ok ? 'false' : 'true');
     }
     [userEl, passEl, pass2El, nickEl].forEach(function (el) { el.addEventListener('input', refresh); });
     consent.addEventListener('change', refresh);

@@ -131,7 +131,10 @@ if ($install) {
             }
             $keyPath = SC_ROOT . '/secrets/master.key';
             if (!is_file($keyPath)) {
-                file_put_contents($keyPath, bin2hex(random_bytes(32)));
+                $written = @file_put_contents($keyPath, bin2hex(random_bytes(32)));
+                if ($written === false) {
+                    throw new RuntimeException('无法写入 secrets/master.key，请检查 secrets 目录权限');
+                }
                 @chmod($keyPath, 0600);
             }
 

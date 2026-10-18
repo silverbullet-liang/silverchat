@@ -204,7 +204,10 @@
         var json = null;
         try { json = JSON.parse(text); } catch (e) {}
         if (!json) {
-          throw new SC.ApiError(-1, '网络异常，请稍后重试', res.status);
+          var hint = res.status >= 500
+            ? '服务器错误（HTTP ' + res.status + '），请访问 /diag.php 检查环境'
+            : '网络异常，请稍后重试';
+          throw new SC.ApiError(-1, hint, res.status);
         }
         if (json.code !== 0) {
           var err = new SC.ApiError(json.code, json.msg || '操作失败', res.status);

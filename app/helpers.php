@@ -359,3 +359,32 @@ function sc_conv_for_user(int $convId, int $userId)
         array($userId, $convId)
     );
 }
+
+/** 把常见异常翻译成可行动的提示（不暴露路径与 SQL 细节）。 */
+function sc_error_hint($e): string
+{
+    $msg = (string) $e->getMessage();
+    if ($e instanceof PDOException) {
+        if (stripos($msg, 'Unknown database') !== false) {
+            return '数据库不存在，请检查 config/config.php 中的库名';
+        }
+        if (stripos($msg, "doesn't exist") !== false || stripos($msg, 'no such table') !== false) {
+            return '数据表缺失，请导入 sql/schema.sql 后重试';
+        }
+        if (stripos($msg, 'Access denied') !== false) {
+            return '数据库账号或密码错误，请检查 config/config.php';
+        }
+        if (stripos($msg, 'Connection refused') !== false || stripos($msg, 'getaddrinfo') !== false
+            || stripos($msg, 'No such host') !== false) {
+            return '无法连接数据库，请检查数据库主机地址';
+        }
+        return '数据库错误，请访问 /diag.php 查看详情';
+    }
+    if (stripos($msg, 'master.key') !== false || stripos($msg, '主密钥') !== false) {
+        return '缺少主密钥，请重新运行 install.php 或执行 tools/make_key.php';
+    }
+    if (stripos($msg, 'Permission denied') !== false || stripos($msg, 'not writable') !== false) {
+        return '文件权限不足，请确认 storage/ 与 secrets/ 目录可写';
+    }
+    return '服务暂时不可用，请访问 /diag.php 检查环境';
+}
