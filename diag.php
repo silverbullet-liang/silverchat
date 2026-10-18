@@ -79,7 +79,7 @@ if (isset($cfg['db']['host'], $cfg['db']['name'], $cfg['db']['user'])) {
 }
 sc_diag_add($items, '数据库连接', $dbOk, $dbOk ? '成功，共 ' . count($tables) . ' 张表' : '失败：' . $dbErr);
 
-$critical = array('users', 'user_tokens', 'conversations', 'messages', 'groups', 'media_files');
+$critical = array('users', 'user_tokens', 'conversations', 'messages', 'groups', 'media_files', 'group_keys', 'settings');
 $missing = array();
 foreach ($critical as $t) {
     if (!in_array($t, $tables, true)) {

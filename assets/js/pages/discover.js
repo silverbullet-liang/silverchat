@@ -246,7 +246,7 @@
       SC.qsa('.thumb', mediaEl).forEach(function (n) { n.parentNode.removeChild(n); });
       picked.forEach(function (item, idx) {
         var thumb = SC.el('div', { class: 'thumb' });
-        thumb.innerHTML = '<img src="' + item.preview + '" alt="">';
+        thumb.innerHTML = '<img src="' + item.preview + '" alt="" draggable="false" loading="lazy">';
         var del = SC.el('button', { type: 'button', text: '×' });
         del.addEventListener('click', function () {
           picked.splice(idx, 1);

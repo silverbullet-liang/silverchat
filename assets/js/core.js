@@ -420,6 +420,10 @@
 
   SC.start = function () {
     window.addEventListener('popstate', function () { SC.render(); });
+    // 图片一律禁止拖拽，动态生成的图片同样覆盖；其余三件套由 CSS 统一声明
+    document.addEventListener('dragstart', function (e) {
+      if (e.target && e.target.tagName === 'IMG') { e.preventDefault(); }
+    });
     SC.render();
   };
 
