@@ -185,6 +185,7 @@
     }
     if (token && opts.auth !== false) {
       headers['Authorization'] = 'Bearer ' + token;
+      headers['X-Auth-Token'] = token;
     }
     var controller = null;
     var timer = 0;
@@ -232,7 +233,10 @@
   SC.upload = function (path, formData, opts) {
     opts = opts || {};
     var headers = {};
-    if (SC.getToken()) { headers['Authorization'] = 'Bearer ' + SC.getToken(); }
+    if (SC.getToken()) {
+      headers['Authorization'] = 'Bearer ' + SC.getToken();
+      headers['X-Auth-Token'] = SC.getToken();
+    }
     return fetch('/api/' + path, { method: 'POST', headers: headers, body: formData, credentials: 'same-origin' })
       .then(function (res) {
         return res.text().then(function (text) {

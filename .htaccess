@@ -6,6 +6,13 @@ DirectoryIndex index.php
   RewriteEngine On
   RewriteBase /
 
+  # 部分 CGI/FastCGI 主机会剥离 Authorization 请求头，显式透传给 PHP
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+  <IfModule mod_setenvif.c>
+    SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+  </IfModule>
+
   # API 单入口
   RewriteRule ^api/(.*)$ api.php [QSA,L]
 

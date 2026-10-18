@@ -240,7 +240,36 @@ function sc_log(string $channel, array $ctx = array())
     @file_put_contents($dir . '/app.log', $line, FILE_APPEND | LOCK_EX);
 }
 
-/** 解析 Authorization: Bearer，返回用户行（含解密字段）。 */
+/** 读取 Bearer 令牌：兼容 Authorization 被主机（CGI/FastCGI）剥离的情况。 */
+function sc_bearer_token(): string
+{
+    $candidates = array();
+    foreach (array('HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION') as $key) {
+        if (isset($_SERVER[$key])) {
+            $candidates[] = $_SERVER[$key];
+        }
+    }
+    if (isset($_SERVER['HTTP_X_AUTH_TOKEN'])) {
+        $candidates[] = 'Bearer ' . $_SERVER['HTTP_X_AUTH_TOKEN'];
+    }
+    if (function_exists('getallheaders')) {
+        foreach (getallheaders() as $key => $value) {
+            if (strcasecmp($key, 'Authorization') === 0) {
+                $candidates[] = $value;
+            } elseif (strcasecmp($key, 'X-Auth-Token') === 0) {
+                $candidates[] = 'Bearer ' . $value;
+            }
+        }
+    }
+    foreach ($candidates as $header) {
+        if (preg_match('/^Bearer\s+([0-9a-f]{64})$/i', trim((string) $header), $m)) {
+            return strtolower($m[1]);
+        }
+    }
+    return '';
+}
+
+/** 解析 Bearer，返回用户行（含解密字段）。 */
 function sc_auth_user()
 {
     static $cached = false;
@@ -249,17 +278,10 @@ function sc_auth_user()
         return $user;
     }
     $cached = true;
-    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    if ($header === '' && function_exists('getallheaders')) {
-        $headers = getallheaders();
-        if (isset($headers['Authorization'])) {
-            $header = $headers['Authorization'];
-        }
-    }
-    if (!preg_match('/^Bearer\s+([0-9a-f]{64})$/i', trim($header), $m)) {
+    $token = sc_bearer_token();
+    if ($token === '') {
         return null;
     }
-    $token = strtolower($m[1]);
     $row = db_one(
         'SELECT u.*, t.expires_at, t.device_id AS token_device FROM user_tokens t
          JOIN users u ON u.id = t.user_id
@@ -284,12 +306,12 @@ function sc_require_auth(): array
     if (!$u) {
         sc_fail(1002);
     }
-    // 触达即续期（滑动 7 天，最多续到 30 天）
-    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    if (preg_match('/^Bearer\s+([0-9a-f]{64})$/i', trim($header), $m)) {
+    // 触达即续期（滑动 7 天）
+    $token = sc_bearer_token();
+    if ($token !== '') {
         db_exec(
             'UPDATE user_tokens SET expires_at = GREATEST(expires_at, ?) WHERE token_hash = ?',
-            array(time() + 7 * 86400, token_hash(strtolower($m[1])))
+            array(time() + 7 * 86400, token_hash($token))
         );
     }
     return $u;

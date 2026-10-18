@@ -31,7 +31,32 @@ function sc_username_error(string $name)
 
 function sc_valid_public_key(string $key): bool
 {
-    return (bool) preg_match('/^(x25519|p256):[A-Za-z0-9+\/=]{40,200}$/', $key);
+    if ($key === '') {
+        return false;
+    }
+    // 单算法写法：x25519:<base64>
+    if (preg_match('/^(x25519|p256):[A-Za-z0-9+\/=]{40,200}$/', $key)) {
+        return true;
+    }
+    // 客户端实际提交的是双算法 JSON：{"x25519":"…","p256":"…"}
+    if ($key[0] === '{') {
+        $data = json_decode($key, true);
+        if (!is_array($data)) {
+            return false;
+        }
+        $ok = false;
+        foreach (array('x25519', 'p256') as $alg) {
+            if (!isset($data[$alg])) {
+                continue;
+            }
+            if (!is_string($data[$alg]) || !preg_match('#^[A-Za-z0-9+/=]{40,200}$#', $data[$alg])) {
+                return false;
+            }
+            $ok = true;
+        }
+        return $ok;
+    }
+    return false;
 }
 
 function sc_valid_device_id(string $id): bool
@@ -257,9 +282,9 @@ function api_auth_login()
 function api_auth_logout()
 {
     $u = sc_require_auth();
-    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    if (preg_match('/^Bearer\s+([0-9a-f]{64})$/i', trim($header), $m)) {
-        db_exec('DELETE FROM user_tokens WHERE token_hash = ?', array(token_hash(strtolower($m[1]))));
+    $token = sc_bearer_token();
+    if ($token !== '') {
+        db_exec('DELETE FROM user_tokens WHERE token_hash = ?', array(token_hash($token)));
     }
     sc_json(array('ok' => true));
 }

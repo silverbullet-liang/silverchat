@@ -98,6 +98,11 @@
         });
       }).then(function (data) {
         SC.setToken(data.token);
+        if (SC.getToken() !== data.token) {
+          setLoading(btn, false);
+          showError('浏览器禁止本地存储，无法保持登录');
+          return;
+        }
         SC.state.user = data.user;
         SC.state.booted = true;
         if (data.needs_reconsent) {
@@ -241,6 +246,11 @@
         });
       }).then(function (data) {
         SC.setToken(data.token);
+        if (SC.getToken() !== data.token) {
+          setLoading(btn, false);
+          showError('浏览器禁止本地存储，无法保持登录');
+          return;
+        }
         SC.state.user = data.user;
         SC.state.booted = true;
         SC.toast('欢迎加入', 'success');

@@ -31,7 +31,7 @@ if ($legalDoc !== null) {
 <meta name="theme-color" content="#f7f7f7">
 <meta name="robots" content="noindex, nofollow">
 <title><?php echo sc_e($siteName); ?></title>
-<link rel="stylesheet" href="/assets/css/app.css">
+<link rel="stylesheet" href="/assets/css/app.css?v=<?php echo SC_VERSION; ?>">
 <link rel="icon" type="image/svg+xml" href="/assets/img/logo.svg">
 <link rel="manifest" href="/manifest.json">
 </head>
@@ -60,6 +60,6 @@ if ($legalDoc !== null) {
 <script src="/assets/js/pages/discover.js"></script>
 <script src="/assets/js/pages/me.js"></script>
 <script src="/assets/js/pages/kefu.js"></script>
-<script src="/assets/js/app.js"></script>
+<script src="/assets/js/app.js?v=<?php echo SC_VERSION; ?>"></script>
 </body>
 </html>

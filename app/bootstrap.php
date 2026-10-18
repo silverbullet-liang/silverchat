@@ -7,7 +7,7 @@ declare(strict_types=1);
  */
 
 define('SC_ROOT', dirname(__DIR__));
-define('SC_VERSION', '1.0.0');
+define('SC_VERSION', '1.0.3');
 
 if (!defined('SC_CLI')) {
     define('SC_CLI', PHP_SAPI === 'cli');
@@ -87,6 +87,8 @@ function sc_security_headers(bool $html = false)
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }
     if ($html) {
+        // 页面本身不缓存，避免更新后浏览器仍用旧 HTML 引旧资源
+        header('Cache-Control: no-cache, no-store, must-revalidate');
         // 脚本只允许同源文件，杜绝内联脚本执行；样式允许内联属性（动态布局需要）。
         header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
             . "img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; font-src 'self'; "
