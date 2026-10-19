@@ -152,6 +152,7 @@ function sc_conv_payload(array $uc, int $myId): array
                 'sender_id'      => (int) $msg['sender_id'],
                 'sender_public_id' => $senderRow ? $senderRow['public_id'] : '',
                 'sender_name'    => $senderRow ? $senderRow['nickname'] : '',
+                'sender_avatar'  => $senderRow ? (string) $senderRow['avatar'] : '',
             );
         }
     }
@@ -392,6 +393,7 @@ function api_message_history()
             'sender_id' => $sid,
             'sender_public_id' => isset($map[$sid]) ? $map[$sid]['public_id'] : '',
             'sender_name' => isset($map[$sid]) ? $map[$sid]['nickname'] : '',
+            'sender_avatar' => isset($map[$sid]) ? (string) $map[$sid]['avatar'] : '',
         );
     }
     sc_json(array(

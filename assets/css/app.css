@@ -508,6 +508,14 @@ h1, h2, h3, h4 { margin: 0; font-weight: 600; }
   box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.05);
 }
 .bubble-self { background: var(--color-bubble-self); }
+/* 解密失败的消息：保留位置与时间，明确告知，而不是静默消失 */
+.bubble-failed,
+.bubble-self.bubble-failed {
+  background: #f1f1f1;
+  color: #9aa0a6;
+  font-style: italic;
+  font-size: 13px;
+}
 .bubble::before {
   content: "";
   position: absolute;

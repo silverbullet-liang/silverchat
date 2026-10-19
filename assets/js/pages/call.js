@@ -212,33 +212,130 @@
   }
 
   function getMedia(mediaType) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return Promise.reject({ name: 'NotSupportedError', message: '当前环境不支持通话' });
+    }
     return navigator.mediaDevices.getUserMedia({
       audio: true,
       video: mediaType === 2 ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false
     });
   }
 
+  /** 把浏览器的 media 异常翻译成可操作的说明 */
+  function mediaErrorInfo(e) {
+    var n = (e && e.name) || '';
+    if (n === 'InsecureContext') {
+      return { title: '通话需要 HTTPS', content: '浏览器只允许在 HTTPS 页面使用麦克风和摄像头。当前页面不是安全连接，请通过 https:// 访问本站后再试。' };
+    }
+    if (n === 'DeniedForever') {
+      return { title: '麦克风权限被浏览器拒绝', content: '浏览器记住了「阻止」，因此不会再弹权限框。请点击地址栏左侧的图标，把麦克风（和摄像头）改为「允许」，然后刷新页面再试。' };
+    }
+    if (n === 'NotSupportedError') {
+      return { title: '浏览器不支持通话', content: '当前浏览器不支持实时音视频，请使用最新版 Chrome、Edge、Safari 或 Firefox。' };
+    }
+    if (n === 'NotAllowedError' || n === 'PermissionDeniedError' || n === 'SecurityError') {
+      return { title: '没有获得麦克风权限', content: '需要麦克风（视频通话还需要摄像头）才能通话。请在浏览器弹出的权限提示中选择「允许」后重试。' };
+    }
+    if (n === 'NotFoundError' || n === 'DevicesNotFoundError' || n === 'OverconstrainedError') {
+      return { title: '没有可用设备', content: '没有检测到可用的麦克风或摄像头，请检查设备是否已连接并被系统识别。' };
+    }
+    if (n === 'NotReadableError' || n === 'TrackStartError' || n === 'AbortError') {
+      return { title: '设备被占用', content: '麦克风或摄像头正被其他程序使用，请关闭占用它的程序（如会议软件）后重试。' };
+    }
+    return { title: '无法开始通话', content: (e && e.message) || '无法访问麦克风或摄像头，请稍后重试。' };
+  }
+
+  /** 单按钮提示层：toast 只有 2 秒，权限问题需要用户读完并去改设置 */
+  function notice(title, content) {
+    var mask = SC.el('div', { class: 'mask' });
+    var ok = SC.el('button', { type: 'button', class: 'primary dialog-ok', text: '知道了' });
+    var dialog = SC.el('div', { class: 'dialog' }, [
+      SC.el('div', { class: 'dialog-title', text: title }),
+      SC.el('div', { class: 'dialog-content' }, [SC.el('p', { text: content })]),
+      SC.el('div', { class: 'dialog-actions' }, [ok])
+    ]);
+    function close() {
+      document.removeEventListener('keydown', onKey);
+      if (mask.parentNode) { mask.parentNode.removeChild(mask); }
+    }
+    function onKey(e) { if (e.key === 'Escape') { close(); } }
+    ok.addEventListener('click', close);
+    mask.addEventListener('click', function (e) { if (e.target === mask) { close(); } });
+    document.addEventListener('keydown', onKey);
+    mask.appendChild(dialog);
+    document.body.appendChild(mask);
+  }
+
+  function reportMediaError(e) {
+    var n = (e && e.name) || '';
+    if ((n === 'NotAllowedError' || n === 'PermissionDeniedError') && navigator.permissions && navigator.permissions.query) {
+      // 已拒绝时再问一次权限状态，区分「刚刚点了拒绝」与「之前永久阻止」
+      navigator.permissions.query({ name: 'microphone' }).then(function (st) {
+        if (st && st.state === 'denied') {
+          var d = mediaErrorInfo({ name: 'DeniedForever' });
+          notice(d.title, d.content);
+        } else {
+          var a = mediaErrorInfo({ name: 'NotAllowedError' });
+          notice(a.title, a.content);
+        }
+      }).catch(function () {
+        var a = mediaErrorInfo({ name: 'NotAllowedError' });
+        notice(a.title, a.content);
+      });
+      return;
+    }
+    var info = mediaErrorInfo(e);
+    notice(info.title, info.content);
+  }
+
+  /**
+   * 只拦「无论怎么申请都不可能成功」的情况。
+   * 不用 permissions.query 做前置阻断：浏览器对未授权状态也可能返回 denied，
+   * 那样会让用户根本看不到权限弹框。
+   */
+  function preflight() {
+    if (window.isSecureContext === false) { return Promise.reject({ name: 'InsecureContext' }); }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return Promise.reject({ name: 'NotSupportedError' });
+    }
+    return Promise.resolve(null);
+  }
+
+  /** 中止当前通话：释放资源、关层、通知服务端结束，避免对方一直响 */
+  function abortCall() {
+    var id = current && current.id;
+    closePeer();
+    removeLayer();
+    if (id) {
+      SC.api('call/end', { body: { call_id: id } }).catch(function () {});
+    }
+  }
+
   /* -------------------------------------------------------------- 对外 API */
   SC.call.start = function (convId, mediaType) {
-    if (!supported()) { SC.toast('当前浏览器不支持通话', 'error'); return; }
     if (current || incoming) { SC.toast('正在通话中'); return; }
-    SC.api('call/start', { body: { conv_id: convId, media_type: mediaType } }).then(function (data) {
-      current = {
-        id: data.call.id,
-        peer: data.call.peer,
-        mediaType: mediaType,
-        after: 0,
-        busy: false,
-        startedAt: 0,
-        stream: null,
-        remoteStream: null,
-        pendingIce: [],
-        pc: null
-      };
-      buildLayer(data.call.peer, mediaType, 'outgoing');
-      preparePeer(data.ice_servers);
-      return getMedia(mediaType).then(function (stream) {
-        current.stream = stream;
+
+    // 顺序很重要：先拿到本地媒体权限，再去服务端建通话记录。
+    // 反过来的话，用户拒绝权限会留下一条永远处于「呼叫中」的记录，对方会被无端叫响。
+    preflight().then(function (blocked) {
+      if (blocked) { return Promise.reject(blocked); }
+      return getMedia(mediaType);
+    }).then(function (stream) {
+      return SC.api('call/start', { body: { conv_id: convId, media_type: mediaType } }).then(function (data) {
+        current = {
+          id: data.call.id,
+          peer: data.call.peer,
+          mediaType: mediaType,
+          after: 0,
+          busy: false,
+          startedAt: 0,
+          stream: stream,
+          remoteStream: null,
+          pendingIce: [],
+          pc: null
+        };
+        buildLayer(data.call.peer, mediaType, 'outgoing');
+        preparePeer(data.ice_servers);
         stream.getTracks().forEach(function (t) { current.pc.addTrack(t, stream); });
         bindStreams();
         return current.pc.createOffer();
@@ -250,43 +347,50 @@
         });
       }).then(startPoll);
     }).catch(function (e) {
-      closePeer();
-      removeLayer();
-      SC.toast(e.message || '无法发起通话', 'error');
+      abortCall();
+      reportMediaError(e);
     });
   };
 
   SC.call.accept = function () {
-    if (!incoming) { return; }
+    if (!incoming || incoming.busy) { return; }
     var call = incoming;
-    incoming = null;
-    SC.api('call/answer', { body: { call_id: call.id, accept: 1 } }).then(function (data) {
-      current = {
-        id: call.id,
-        peer: call.caller,
-        mediaType: call.media_type,
-        after: 0,
-        busy: false,
-        startedAt: Math.floor(Date.now() / 1000),
-        stream: null,
-        remoteStream: null,
-        pendingIce: [],
-        pc: null
-      };
-      buildLayer(call.caller, call.media_type, 'active');
-      setStatus('连接中…');
-      preparePeer(data.ice_servers);
-      return getMedia(call.media_type).then(function (stream) {
-        current.stream = stream;
+    call.busy = true;
+
+    // 同样先要权限再应答：权限被拒时通知服务端未接听，主叫不会空等到超时
+    preflight().then(function (blocked) {
+      if (blocked) { return Promise.reject(blocked); }
+      return getMedia(call.media_type);
+    }).then(function (stream) {
+      return SC.api('call/answer', { body: { call_id: call.id, accept: 1 } }).then(function (data) {
+        incoming = null;
+        current = {
+          id: call.id,
+          peer: call.caller,
+          mediaType: call.media_type,
+          after: 0,
+          busy: false,
+          startedAt: Math.floor(Date.now() / 1000),
+          stream: stream,
+          remoteStream: null,
+          pendingIce: [],
+          pc: null
+        };
+        buildLayer(call.caller, call.media_type, 'active');
+        setStatus('连接中…');
+        preparePeer(data.ice_servers);
         stream.getTracks().forEach(function (t) { current.pc.addTrack(t, stream); });
         bindStreams();
         startPoll();
-        ticker = setInterval(function () { setDuration(current && current.startedAt); }, 1000);
+        if (!ticker) {
+          ticker = setInterval(function () { setDuration(current && current.startedAt); }, 1000);
+        }
       });
     }).catch(function (e) {
-      closePeer();
+      incoming = null;
       removeLayer();
-      SC.toast(e.message || '接听失败', 'error');
+      SC.api('call/answer', { body: { call_id: call.id, accept: 0 } }).catch(function () {});
+      reportMediaError(e);
     });
   };
 

@@ -97,6 +97,10 @@ function api_call_start()
     if ($busy) {
         sc_fail(1001, '当前有正在进行的通话');
     }
+    // 机会性清理一小时前的残留信令（异常结束的通话不会走到 end）
+    if (random_int(1, 5) === 1) {
+        db_exec('DELETE FROM call_signals WHERE created_at < ?', array(time() - 3600));
+    }
     $callId = db_insert(
         'INSERT INTO calls (conv_id, caller_id, callee_id, media_type, status, created_at) VALUES (?,?,?,?,0,?)',
         array($convId, (int) $u['id'], (int) $peer['id'], $mediaType, time())

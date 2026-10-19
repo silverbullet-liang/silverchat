@@ -213,7 +213,7 @@ if ($done) {
 <body class="page-install">
 <main class="install-card">
   <h1>SilverChat 安装</h1>
-  <p class="small muted" style="margin:2px 0 12px">安装程序 1.1.0 · 2026-10-19</p>
+  <p class="small muted" style="margin:2px 0 12px">安装程序 1.1.1 · 2026-10-20</p>
   <p class="muted">填写数据库信息，安装程序会建表并生成主密钥。安装完成后请删除 install.php 与 setup.php。</p>
   <?php foreach ($errors as $e): ?>
     <div class="alert alert-danger"><?php echo htmlspecialchars($e, ENT_QUOTES, 'UTF-8'); ?></div>

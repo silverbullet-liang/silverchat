@@ -48,6 +48,7 @@ function api_poll()
             'sender_id' => $sid,
             'sender_public_id' => isset($map[$sid]) ? $map[$sid]['public_id'] : '',
             'sender_name' => isset($map[$sid]) ? $map[$sid]['nickname'] : '',
+            'sender_avatar' => isset($map[$sid]) ? (string) $map[$sid]['avatar'] : '',
         );
     }
 

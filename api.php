@@ -91,6 +91,7 @@ $routes = array(
     'POST account/delete'         => 'api_account_delete',
 
     'POST user/profile'           => 'api_user_profile',
+    'POST user/public_key'        => 'api_user_public_key',
     'POST user/avatar'            => 'api_user_avatar',
     'POST user/password'          => 'api_user_password',
     'POST user/security_question' => 'api_user_security_question',

@@ -251,19 +251,15 @@ function api_auth_login()
     db_exec('DELETE FROM login_attempts WHERE username_bidx = ? AND ip = ?', array($bidx, $ip));
 
     $userId = (int) $row['id'];
-    if ($publicKey !== '' && sc_valid_public_key($publicKey)) {
+    $keyOk = $publicKey !== '' && sc_valid_public_key($publicKey);
+    if ($keyOk) {
         db_exec('UPDATE users SET public_key = ? WHERE id = ?', array($publicKey, $userId));
-        db_exec(
-            'INSERT INTO user_devices (user_id, device_id, public_key, user_agent, created_at, last_seen_at) VALUES (?,?,?,?,?,?)
-             ON DUPLICATE KEY UPDATE public_key = VALUES(public_key), last_seen_at = VALUES(last_seen_at), user_agent = VALUES(user_agent)',
-            array($userId, $deviceId, $publicKey, sc_user_agent(), time(), time())
-        );
-    } else {
-        db_exec(
-            'UPDATE user_devices SET last_seen_at = ? WHERE user_id = ? AND device_id = ?',
-            array(time(), $userId, $deviceId)
-        );
     }
+    // 无论本次是否携带公钥都要落一行设备记录，否则「登录设备管理」只认得注册那台
+    $sql = 'INSERT INTO user_devices (user_id, device_id, public_key, user_agent, created_at, last_seen_at) VALUES (?,?,?,?,?,?)
+            ON DUPLICATE KEY UPDATE last_seen_at = VALUES(last_seen_at), user_agent = VALUES(user_agent)'
+        . ($keyOk ? ', public_key = VALUES(public_key)' : '');
+    db_exec($sql, array($userId, $deviceId, $keyOk ? $publicKey : '', sc_user_agent(), time(), time()));
 
     $token = sc_issue_token($userId, $deviceId);
 
@@ -443,6 +439,22 @@ function api_user_profile()
     sc_json(array('user' => sc_user_by_id((int) $u['id'])));
 }
 
+/** POST /api/user/public_key {public_key} —— 换设备登录后同步本机公钥 */
+function api_user_public_key()
+{
+    $u = sc_require_auth();
+    $key = trim(sc_str(sc_in('public_key'), 300));
+    if (!sc_valid_public_key($key)) {
+        sc_fail(1001, '加密公钥无效');
+    }
+    if ($key === (string) $u['public_key']) {
+        sc_json(array('user' => sc_user_by_id((int) $u['id'])));
+    }
+    sc_rate('pubkey:' . (int) $u['id'], 10, 3600, 1004);
+    db_exec('UPDATE users SET public_key = ? WHERE id = ?', array($key, (int) $u['id']));
+    sc_json(array('user' => sc_user_by_id((int) $u['id'])));
+}
+
 /** GET /api/user/info?public_id= */
 function api_user_info()
 {
@@ -558,24 +570,40 @@ function api_user_avatar()
     sc_json(array('user' => sc_user_by_id((int) $u['id'])));
 }
 
-/** GET /api/avatar/:uid —— 受控输出（解密后返回）。$key 支持内部 id 或 public_id。 */
+/**
+ * GET /api/avatar/:public_id —— 头像公开输出。
+ *
+ * 浏览器 <img> 发起的请求不会携带 Authorization（它不是 XHR），因此这里不能要求登录，
+ * 否则全站头像都返回 401。头像属于用户主动上传的公开资料，只允许按 public_id 访问，
+ * 不接受自增 id，避免被顺序枚举。
+ */
 function api_avatar_output(string $key)
 {
-    sc_require_auth();
-    $userId = (int) db_val('SELECT id FROM users WHERE public_id = ? AND deleted_at IS NULL LIMIT 1', array($key));
-    $avatar = $userId > 0 ? db_val('SELECT avatar FROM users WHERE id = ? AND deleted_at IS NULL LIMIT 1', array($userId)) : '';
-    $abs = $avatar ? SC_ROOT . '/' . $avatar : '';
-    if (!$abs || !is_file($abs)) {
-        http_response_code(404);
+    $placeholder = '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">'
+        . '<rect width="80" height="80" fill="#e6e6e6"/>'
+        . '<circle cx="40" cy="32" r="14" fill="#b8b8b8"/>'
+        . '<path d="M12 76c0-16 12-24 28-24s28 8 28 24z" fill="#b8b8b8"/></svg>';
+
+    if (!preg_match('/^sc_[a-z0-9]{4,32}$/', $key)) {
         header('Content-Type: image/svg+xml; charset=utf-8');
-        echo '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">'
-            . '<rect width="80" height="80" fill="#e6e6e6"/>'
-            . '<circle cx="40" cy="32" r="14" fill="#b8b8b8"/>'
-            . '<path d="M12 76c0-16 12-24 28-24s28 8 28 24z" fill="#b8b8b8"/></svg>';
+        header('Cache-Control: public, max-age=60');
+        echo $placeholder;
+        exit;
+    }
+
+    $avatar = (string) db_val(
+        'SELECT avatar FROM users WHERE public_id = ? AND deleted_at IS NULL LIMIT 1',
+        array($key)
+    );
+    $abs = $avatar !== '' ? SC_ROOT . '/' . $avatar : '';
+    if ($abs === '' || !is_file($abs)) {
+        header('Content-Type: image/svg+xml; charset=utf-8');
+        header('Cache-Control: public, max-age=60');
+        echo $placeholder;
         exit;
     }
     $data = field_decrypt(file_get_contents($abs));
-    if ($data === null) {
+    if ($data === null || $data === '') {
         http_response_code(404);
         exit;
     }
@@ -590,7 +618,8 @@ function api_avatar_output(string $key)
     header('Content-Type: ' . $mime);
     $etag = '"' . md5($data) . '"';
     header('ETag: ' . $etag);
-    header('Cache-Control: private, no-cache');
+    // 不缓存实际内容、每次条件校验：换头像立即生效，未变则 304 无 body
+    header('Cache-Control: private, max-age=0, must-revalidate');
     if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim((string) $_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
         http_response_code(304);
         exit;

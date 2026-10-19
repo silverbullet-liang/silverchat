@@ -85,6 +85,7 @@
 |---|---|---|
 | POST | `/user/profile` | 修改昵称、签名、性别 |
 | POST | `/user/avatar` | 上传头像（multipart，字段 `avatar`） |
+| POST | `/user/public_key` | 同步本机加密公钥（换设备后调用，每小时最多 10 次） |
 | POST | `/user/password` | 修改密码（会清空所有登录凭证） |
 | POST | `/user/security_question` | 设置安全问题与答案 |
 | GET | `/user/info?public_id=` | 查看他人资料与好友状态 |

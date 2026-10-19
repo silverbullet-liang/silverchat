@@ -52,11 +52,15 @@
       SC.state.serverTime = data.server_time || 0;
       SC.state.booted = true;
       return SC.store.ensureIdentity().then(function (identity) {
-        // 服务器公钥与本机不一致（如换设备登录），同步本机公钥
+        // 本机身份与服务端记录不一致（换设备或清过本地存储）：把本机公钥同步上去，
+        // 否则对方仍用旧公钥加密，本机解不开新消息。
         if (data.user.public_key !== identity.publicKey) {
-          return SC.api('user/profile', { body: {} }).catch(function () {}).then(function () {
-            return SC.api('auth/me').catch(function () { return null; });
-          });
+          return SC.api('user/public_key', { body: { public_key: SC.store.publicKeyForServer(identity) } })
+            .then(function (res) {
+              if (res && res.user) { SC.state.user = res.user; }
+              return null;
+            })
+            .catch(function () { return null; });
         }
         return null;
       }).then(function () {

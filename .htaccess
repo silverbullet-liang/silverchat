@@ -27,7 +27,10 @@ DirectoryIndex index.php
 # 敏感目录与文件一律拒绝
 RedirectMatch 404 ^/(config|secrets|storage|sql|tools|app)/.*$
 RedirectMatch 404 ^/legal/.*\.md$
-RedirectMatch 404 \.(key|log|sql|lock|bak|ini|md|json|sample\.php)$
+# 敏感扩展名（PWA manifest 例外，否则 <link rel="manifest"> 永远 404）
+RedirectMatch 404 ^/(?!manifest\.json$).*\.(key|log|sql|lock|bak|ini|json)$
+RedirectMatch 404 \.sample\.php$
+RedirectMatch 404 \.md$
 
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"

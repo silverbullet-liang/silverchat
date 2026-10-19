@@ -398,7 +398,7 @@
 
       var row = SC.el('div', { class: 'msg-row' + (mine ? ' self' : '') });
       var avatarWrap = SC.el('span', { class: 'msg-avatar' });
-      var avatarImg = SC.ui.avatar(msg.sender_public_id, msg.sender_name, '', !!msg.sender_public_id);
+      var avatarImg = SC.ui.avatar(msg.sender_public_id, msg.sender_name, '', !!msg.sender_avatar);
       avatarWrap.innerHTML = avatarImg;
       var main = SC.el('div', { class: 'msg-main' });
       if (conv && conv.type === 2 && !mine) {
@@ -422,8 +422,8 @@
       } else if (msg.type === 7) {
         bubble = locationBubble(msg);
       } else {
-        bubble = SC.el('div', { class: 'bubble' + (mine ? ' bubble-self' : '') });
-        var body = SC.el('span', { class: 'bubble-text', text: msg.text || '' });
+        bubble = SC.el('div', { class: 'bubble' + (mine ? ' bubble-self' : '') + (msg.decryptFailed ? ' bubble-failed' : '') });
+        var body = SC.el('span', { class: 'bubble-text', text: msg.decryptFailed ? '消息无法解密' : (msg.text || '') });
         bubble.appendChild(body);
       }
       if (msg.status === -1) {
@@ -503,9 +503,14 @@
             v.style.borderRadius = '6px';
             bubble.appendChild(v);
           }
-        }).catch(function () {
+        }).catch(function (err) {
           bubble.innerHTML = '';
-          bubble.appendChild(SC.el('div', { class: 'bubble bubble-expired', text: kind === 'image' ? '图片已过期' : '视频已过期' }));
+          // 区分「服务端已清理」与「本机解不开」：前者是真过期，后者是密钥不匹配
+          var gone = /media (404|410)/.test((err && err.message) || '');
+          bubble.appendChild(SC.el('div', {
+            class: 'bubble bubble-expired',
+            text: gone ? (kind === 'image' ? '图片已过期' : '视频已过期') : '内容无法解密'
+          }));
         });
       } else {
         placeholder.textContent = '内容已过期';
@@ -514,23 +519,36 @@
     }
 
     var mediaUrlCache = {};
+    /**
+     * 媒体密钥：单聊必须用 ECDH 派生出 AES 密钥再加密字节，
+     * 直接拿对方公钥当密钥会导致 decryptBytes 抛 CryptoKey 类型错误（图片永远出不来）。
+     * 群聊直接复用群密钥。
+     */
+    function mediaAesKey() {
+      if (conv && conv.type === 2) {
+        return groupKey ? Promise.resolve(groupKey) : Promise.reject(new Error('群密钥未就绪'));
+      }
+      if (!identity || !peerKey) { return Promise.reject(new Error('加密通道未就绪')); }
+      return SC.crypto.sessionKey(identity, peerKey, null, 'media-key');
+    }
+
     function loadMedia(mediaId, kind) {
       if (mediaUrlCache[mediaId]) { return Promise.resolve(mediaUrlCache[mediaId]); }
-      var key = keyForMessage({});
-      if (!key) { return Promise.reject(new Error('no key')); }
-      return fetch('/api/media/' + mediaId, {
-        headers: { Authorization: 'Bearer ' + SC.getToken() },
-        credentials: 'same-origin'
-      }).then(function (res) {
-        if (!res.ok) { throw new Error('media ' + res.status); }
-        return res.arrayBuffer();
-      }).then(function (buf) {
-        return SC.crypto.decryptBytes(key, buf);
-      }).then(function (plain) {
-        var blob = new Blob([plain], { type: kind === 'image' ? 'image/jpeg' : 'application/octet-stream' });
-        var url = URL.createObjectURL(blob);
-        mediaUrlCache[mediaId] = url;
-        return url;
+      return mediaAesKey().then(function (key) {
+        return fetch('/api/media/' + mediaId, {
+          headers: { Authorization: 'Bearer ' + SC.getToken() },
+          credentials: 'same-origin'
+        }).then(function (res) {
+          if (!res.ok) { throw new Error('media ' + res.status); }
+          return res.arrayBuffer();
+        }).then(function (buf) {
+          return SC.crypto.decryptBytes(key, buf);
+        }).then(function (plain) {
+          var blob = new Blob([plain], { type: kind === 'image' ? 'image/jpeg' : 'application/octet-stream' });
+          var url = URL.createObjectURL(blob);
+          mediaUrlCache[mediaId] = url;
+          return url;
+        });
       });
     }
 
@@ -770,32 +788,32 @@
     }
 
     function uploadAndSend(file, type) {
-      var key = keyForMessage({});
-      if (!key) { SC.toast('加密通道未就绪', 'error'); return; }
       SC.toast(type === 1 ? '正在处理图片…' : '正在上传…');
-      var prep = type === 1 ? compressImage(file) : Promise.resolve({ blob: file, w: 0, h: 0 });
-      prep.then(function (res) {
-        var blob = res.blob;
-        return blob.arrayBuffer().then(function (buf) {
-          return SC.crypto.encryptBytes(key, buf);
-        }).then(function (enc) {
-          var fd = new FormData();
-          var ext = file.name && file.name.indexOf('.') > 0 ? file.name.slice(file.name.lastIndexOf('.')) : '';
-          var name = type === 1 ? 'image.jpg' : (file.name || ('file' + ext));
-          fd.append('file', new Blob([enc]), name);
-          fd.append('type', String(type));
-          return SC.upload('upload', fd);
-        }).then(function (data) {
-          var extra = { media_id: data.media_id, size: file.size };
-          var text = '';
-          if (type === 1) { extra.w = res.w; extra.h = res.h; text = '[图片]'; }
-          if (type === 3) { text = '[视频]'; }
-          if (type === 4) { extra.name = file.name || '文件'; text = '[文件]'; }
-          if (type === 2) { text = '[语音]'; }
-          var msgType = type === 1 ? 2 : type === 3 ? 4 : type === 4 ? 5 : 3;
-          return submitMessage(text, msgType, extra).then(function () {
-            // 用本地预览替换占位
-            mediaUrlCache[data.media_id] = URL.createObjectURL(blob);
+      mediaAesKey().then(function (key) {
+        var prep = type === 1 ? compressImage(file) : Promise.resolve({ blob: file, w: 0, h: 0 });
+        return prep.then(function (res) {
+          var blob = res.blob;
+          return blob.arrayBuffer().then(function (buf) {
+            return SC.crypto.encryptBytes(key, buf);
+          }).then(function (enc) {
+            var fd = new FormData();
+            var ext = file.name && file.name.indexOf('.') > 0 ? file.name.slice(file.name.lastIndexOf('.')) : '';
+            var name = type === 1 ? 'image.jpg' : (file.name || ('file' + ext));
+            fd.append('file', new Blob([enc]), name);
+            fd.append('type', String(type));
+            return SC.upload('upload', fd);
+          }).then(function (data) {
+            var extra = { media_id: data.media_id, size: file.size };
+            var text = '';
+            if (type === 1) { extra.w = res.w; extra.h = res.h; text = '[图片]'; }
+            if (type === 3) { text = '[视频]'; }
+            if (type === 4) { extra.name = file.name || '文件'; text = '[文件]'; }
+            if (type === 2) { text = '[语音]'; }
+            var msgType = type === 1 ? 2 : type === 3 ? 4 : type === 4 ? 5 : 3;
+            return submitMessage(text, msgType, extra).then(function () {
+              // 用本地预览替换占位
+              mediaUrlCache[data.media_id] = URL.createObjectURL(blob);
+            });
           });
         });
       }).catch(function (err) {
