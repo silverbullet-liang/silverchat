@@ -24,6 +24,26 @@ $defaults = array(
     'force_https' => $isCli ? '0' : ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? '1' : '0'),
 );
 
+// 已有配置文件时用其值预填：在已完成硬编码的站点上运行本程序，只建表与播种数据，
+// 不会把生产配置冲掉。密码不回显，留空即沿用现有值。
+$preset = array();
+if (is_file(__DIR__ . '/config/config.php')) {
+    $cur = @include __DIR__ . '/config/config.php';
+    if (is_array($cur) && isset($cur['db'])) {
+        $preset = $cur;
+        $defaults['db_host'] = (string) ($cur['db']['host'] ?? $defaults['db_host']);
+        $defaults['db_port'] = (string) ($cur['db']['port'] ?? $defaults['db_port']);
+        $defaults['db_name'] = (string) ($cur['db']['name'] ?? $defaults['db_name']);
+        $defaults['db_user'] = (string) ($cur['db']['user'] ?? $defaults['db_user']);
+        if (!empty($cur['site']['url'])) {
+            $defaults['site_url'] = (string) $cur['site']['url'];
+        }
+        if (isset($cur['site']['force_https'])) {
+            $defaults['force_https'] = $cur['site']['force_https'] ? '1' : '0';
+        }
+    }
+}
+
 $values = $defaults;
 if ($isCli) {
     foreach ($argv as $arg) {
@@ -37,6 +57,10 @@ if ($isCli) {
     if ($install) {
         foreach ($defaults as $k => $v) {
             $values[$k] = isset($_POST[$k]) ? trim((string) $_POST[$k]) : $v;
+        }
+        // 密码留空＝沿用配置文件里的现有密码，页面上不回显任何凭据
+        if ($values['db_pass'] === '' && !empty($preset['db']['pass'])) {
+            $values['db_pass'] = (string) $preset['db']['pass'];
         }
     }
 }
@@ -125,6 +149,8 @@ if ($install) {
                 throw new RuntimeException('无法创建 config 目录');
             }
             $php = "<?php\n// SilverChat 配置（安装程序生成）\nreturn " . var_export($config, true) . ";\n";
+            // 密钥路径写成相对站点根目录的表达式，避免目录搬迁后失效
+            $php = str_replace("'" . SC_ROOT . "/secrets/master.key'", "dirname(__DIR__) . '/secrets/master.key'", $php);
             if (@file_put_contents(SC_ROOT . '/config/config.php', $php) === false) {
                 throw new RuntimeException('无法写入 config/config.php');
             }
@@ -223,7 +249,7 @@ if ($done) {
     <label class="field"><span>端口</span><input class="input" name="db_port" value="<?php echo htmlspecialchars($values['db_port'], ENT_QUOTES, 'UTF-8'); ?>"></label>
     <label class="field"><span>数据库名</span><input class="input" name="db_name" value="<?php echo htmlspecialchars($values['db_name'], ENT_QUOTES, 'UTF-8'); ?>"></label>
     <label class="field"><span>数据库用户</span><input class="input" name="db_user" value="<?php echo htmlspecialchars($values['db_user'], ENT_QUOTES, 'UTF-8'); ?>"></label>
-    <label class="field"><span>数据库密码</span><input class="input" type="password" name="db_pass" value=""></label>
+    <label class="field"><span>数据库密码</span><input class="input" type="password" name="db_pass" value=""><div class="input-hint">已配置过时留空即可：安装程序会沿用配置文件中的密码，既不覆盖也不回显。</div></label>
     <label class="field"><span>客服初始密码（留空自动生成）</span><input class="input" type="text" name="kefu_pass" value="" placeholder="至少 8 位，留空则随机生成并显示一次"></label>
     <label class="field"><span>站点地址</span><input class="input" name="site_url" value="<?php echo htmlspecialchars($values['site_url'], ENT_QUOTES, 'UTF-8'); ?>"></label>
     <label class="field checkbox"><input type="checkbox" name="force_https" value="1" <?php echo $values['force_https'] === '1' ? 'checked' : ''; ?>><span>强制 HTTPS（正式环境建议开启）</span></label>
